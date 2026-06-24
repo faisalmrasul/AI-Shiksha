@@ -1,0 +1,106 @@
+{
+  "student1@example.com": {
+    "name": "Rahim Ahmed",
+    "email": "student1@example.com",
+    "phone": "+8801712345678",
+    "password": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+    "user_type": "student",
+    "registered_at": "2026-01-15T10:30:00",
+    "progress": {
+      "completed_chapters": 5,
+      "total_chapters": 20,
+      "mcq_average": 72.5,
+      "study_time": 12,
+      "day_0": 45,
+      "day_1": 60,
+      "day_2": 30,
+      "day_3": 75,
+      "day_4": 50,
+      "day_5": 40,
+      "day_6": 55
+    },
+    "preferences": {
+      "daily_study_time": 30,
+      "learning_pace": "Intermediate",
+      "topics": ["AI Basics", "Machine Learning"],
+      "language": "Bilingual"
+    }
+  },
+  "teacher1@example.com": {
+    "name": "Fatima Begum",
+    "email": "teacher1@example.com",
+    "phone": "+8801712345679",
+    "password": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+    "user_type": "teacher",
+    "registered_at": "2026-01-16T09:15:00",
+    "progress": {
+      "lesson_plans": 8,
+      "assessments": 12,
+      "feedback_messages": 45,
+      "tools_used": {
+        "Lesson Planning": 15,
+        "Assessment Generator": 20,
+        "Feedback Tool": 25,
+        "Classroom Admin": 10
+      }
+    },
+    "preferences": {
+      "daily_study_time": 45,
+      "learning_pace": "Advanced",
+      "topics": ["AI in Education", "EdTech"],
+      "language": "English"
+    }
+  },
+  "professional1@example.com": {
+    "name": "Karim Hasan",
+    "email": "professional1@example.com",
+    "phone": "+8801712345680",
+    "password": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+    "user_type": "professional",
+    "registered_at": "2026-01-17T14:20:00",
+    "progress": {
+      "courses_completed": 3,
+      "skill_level": 65,
+      "role": "healthcare",
+      "completed_modules": ["Medical Imaging and AI", "Healthcare Data Analytics"],
+      "assessment_scores": {
+        "Data Analysis": 70,
+        "AI Understanding": 60,
+        "Industry Knowledge": 80,
+        "Practical Application": 50
+      }
+    },
+    "preferences": {
+      "daily_study_time": 45,
+      "learning_pace": "Advanced",
+      "topics": ["Healthcare AI", "Medical Imaging"],
+      "language": "English"
+    }
+  },
+  "business1@example.com": {
+    "name": "Nurul Islam",
+    "email": "business1@example.com",
+    "phone": "+8801712345681",
+    "password": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+    "user_type": "business",
+    "registered_at": "2026-01-18T11:45:00",
+    "progress": {
+      "tools_adopted": 2,
+      "automations": 1,
+      "roi": 15,
+      "adopted_tools": ["Customer Service Automation", "AI-Assisted Marketing"],
+      "automation_setup": ["Email Marketing Automation"],
+      "business_metrics": {
+        "customer_satisfaction": 85,
+        "operational_efficiency": 70,
+        "cost_reduction": 20
+      }
+    },
+    "preferences": {
+      "daily_study_time": 30,
+      "learning_pace": "Beginner",
+      "topics": ["Business AI", "Automation"],
+      "language": "Bengali"
+    }
+  }
+}
