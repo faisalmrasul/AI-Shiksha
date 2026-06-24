@@ -1,3 +1,6 @@
+# app.py - Main Application Entry Point
+# This file MUST be in the root directory of your project
+
 import streamlit as st
 from modules.auth import AuthManager
 from modules.dashboard import Dashboard
@@ -52,6 +55,8 @@ if 'user_type' not in st.session_state:
     st.session_state.user_type = None
 if 'user_data' not in st.session_state:
     st.session_state.user_data = {}
+if 'page' not in st.session_state:
+    st.session_state.page = "home"
 
 # Initialize modules
 auth_manager = AuthManager()
@@ -157,13 +162,13 @@ def main():
     
     # Authentication pages
     if not st.session_state.authenticated:
-        if choice == "Home":
+        if choice == "Home" or st.session_state.page == "home":
             st.info("Welcome to AI Shiksha! Please login or register to start your AI learning journey.")
             
-        elif choice == "Login":
+        elif choice == "Login" or st.session_state.page == "login":
             auth_manager.login_page()
             
-        elif choice == "Register":
+        elif choice == "Register" or st.session_state.page == "register":
             auth_manager.register_page()
     
     else:
