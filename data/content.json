@@ -1,0 +1,170 @@
+{
+  "subjects": {
+    "mathematics": {
+      "name": "Mathematics",
+      "icon": "📐",
+      "description": "Learn mathematics with AI-powered assistance",
+      "chapters": [
+        {
+          "id": "math_ch1",
+          "title": "Algebra Fundamentals",
+          "topics": ["Linear Equations", "Quadratic Equations", "Polynomials", "Inequalities"],
+          "simplified": "Algebra is the branch of mathematics that deals with symbols and rules for manipulating those symbols. It's like a puzzle where we find unknown values using known information.",
+          "difficulty": "Intermediate",
+          "estimated_time": "2 hours",
+          "mcqs": [
+            {
+              "question": "What is the solution to 2x + 3 = 7?",
+              "options": ["x = 2", "x = 3", "x = 4", "x = 5"],
+              "correct": 0,
+              "explanation": "2x + 3 = 7 → subtract 3 from both sides: 2x = 4 → divide by 2: x = 2"
+            },
+            {
+              "question": "What is the value of x in x² = 25?",
+              "options": ["5", "-5", "±5", "25"],
+              "correct": 2,
+              "explanation": "x² = 25 → take square root of both sides: x = ±5. Both 5 and -5, when squared, equal 25."
+            },
+            {
+              "question": "If x + y = 10 and x - y = 4, what is x?",
+              "options": ["3", "5", "7", "9"],
+              "correct": 2,
+              "explanation": "Add both equations: (x+y) + (x-y) = 10+4 → 2x = 14 → x = 7"
+            },
+            {
+              "question": "What is the slope of the line y = 3x + 2?",
+              "options": ["2", "3", "1", "0.5"],
+              "correct": 1,
+              "explanation": "In y = mx + b, m is the slope. Here m = 3."
+            }
+          ],
+          "resources": [
+            "Video tutorials available",
+            "Practice worksheets",
+            "Interactive exercises"
+          ]
+        },
+        {
+          "id": "math_ch2",
+          "title": "Geometry and Measurement",
+          "topics": ["Triangles", "Circles", "Coordinate Geometry", "Pythagorean Theorem"],
+          "simplified": "Geometry is the branch of mathematics concerned with shapes, sizes, positions, and properties of space. It helps us understand the physical world around us.",
+          "difficulty": "Intermediate",
+          "estimated_time": "2.5 hours",
+          "mcqs": [
+            {
+              "question": "What is the sum of angles in a triangle?",
+              "options": ["90°", "180°", "270°", "360°"],
+              "correct": 1,
+              "explanation": "The sum of interior angles in any triangle is always 180°."
+            },
+            {
+              "question": "What is the Pythagorean theorem?",
+              "options": ["a² + b² = c²", "a² + b² = c", "a + b = c", "a² - b² = c²"],
+              "correct": 0,
+              "explanation": "In a right triangle, the square of the hypotenuse (c) equals the sum of squares of the other two sides: a² + b² = c²"
+            }
+          ],
+          "resources": [
+            "3D visualization tools",
+            "Real-world applications",
+            "Interactive geometry software"
+          ]
+        }
+      ]
+    },
+    "science": {
+      "name": "Science",
+      "icon": "🔬",
+      "description": "Explore scientific concepts with AI explanations",
+      "chapters": [
+        {
+          "id": "sci_ch1",
+          "title": "Physics Basics: Motion and Forces",
+          "topics": ["Newton's Laws", "Motion", "Force", "Energy"],
+          "simplified": "Physics is the study of matter, energy, and their interactions. It explains how objects move, why they move, and what happens when they interact.",
+          "difficulty": "Intermediate",
+          "estimated_time": "2 hours",
+          "mcqs": [
+            {
+              "question": "What is Newton's first law of motion?",
+              "options": [
+                "F = ma",
+                "Every action has an equal and opposite reaction",
+                "An object in motion stays in motion unless acted upon by an external force",
+                "Energy cannot be created or destroyed"
+              ],
+              "correct": 2,
+              "explanation": "Newton's first law (Law of Inertia) states that an object at rest stays at rest and an object in motion stays in motion with the same speed and direction unless acted upon by an external force."
+            },
+            {
+              "question": "What is the formula for force?",
+              "options": ["F = ma", "F = mg", "F = mv", "F = m/v"],
+              "correct": 0,
+              "explanation": "Newton's second law states that Force = mass × acceleration (F = ma)"
+            }
+          ],
+          "resources": [
+            "Physics simulations",
+            "Experiment videos",
+            "Interactive demonstrations"
+          ]
+        }
+      ]
+    },
+    "english": {
+      "name": "English",
+      "icon": "📝",
+      "description": "Master English language skills with AI assistance",
+      "chapters": [
+        {
+          "id": "eng_ch1",
+          "title": "Grammar Fundamentals",
+          "topics": ["Parts of Speech", "Tenses", "Sentence Structure", "Voice"],
+          "simplified": "English grammar is the set of rules that governs how we use the English language. It helps us communicate effectively and clearly in both written and spoken forms.",
+          "difficulty": "Beginner",
+          "estimated_time": "1.5 hours",
+          "mcqs": [
+            {
+              "question": "Which of these is a verb?",
+              "options": ["Run", "Book", "Table", "Apple"],
+              "correct": 0,
+              "explanation": "'Run' is an action word, making it a verb. The others are nouns."
+            },
+            {
+              "question": "What is the past tense of 'write'?",
+              "options": ["Writed", "Wrote", "Written", "Writing"],
+              "correct": 1,
+              "explanation": "'Wrote' is the past tense of 'write'. 'Written' is the past participle."
+            }
+          ],
+          "resources": [
+            "Grammar exercises",
+            "Reading comprehension",
+            "Writing practice"
+          ]
+        }
+      ]
+    }
+  },
+  "teacher_resources": {
+    "lesson_plan_templates": [
+      {
+        "id": "template_1",
+        "title": "Standard Lesson Plan",
+        "sections": ["Objectives", "Materials", "Introduction", "Main Activity", "Assessment", "Closure"]
+      },
+      {
+        "id": "template_2",
+        "title": "Project-Based Learning",
+        "sections": ["Project Goal", "Requirements", "Timeline", "Resources", "Assessment Rubric"]
+      }
+    ],
+    "assessment_types": ["Quiz", "Test", "Project", "Presentation", "Essay"],
+    "feedback_templates": [
+      "Detailed feedback with strengths and areas for improvement",
+      "Quick feedback with scores and comments",
+      "Goal-oriented feedback with next steps"
+    ]
+  }
+}
