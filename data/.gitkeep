@@ -1,0 +1,5 @@
+# Create .gitkeep in data folder
+touch data/.gitkeep
+
+# Or with content
+echo "# This file ensures the data directory is tracked by Git" > data/.gitkeep
