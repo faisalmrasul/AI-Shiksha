@@ -1,0 +1,116 @@
+{
+  "student_progress": {
+    "student1@example.com": {
+      "completed_chapters": 5,
+      "total_chapters": 20,
+      "mcq_average": 72.5,
+      "study_time": 12,
+      "last_active": "2026-01-20T15:30:00",
+      "weekly_activity": {
+        "2026-W03": {
+          "monday": 45,
+          "tuesday": 60,
+          "wednesday": 30,
+          "thursday": 75,
+          "friday": 50,
+          "saturday": 40,
+          "sunday": 55
+        }
+      },
+      "completed_chapters_list": [
+        "math_ch1",
+        "math_ch2",
+        "sci_ch1",
+        "eng_ch1",
+        "sci_ch2"
+      ],
+      "mcq_attempts": 45,
+      "mcq_correct": 33
+    }
+  },
+  "teacher_progress": {
+    "teacher1@example.com": {
+      "lesson_plans": 8,
+      "assessments": 12,
+      "feedback_messages": 45,
+      "tools_used": {
+        "Lesson Planning": 15,
+        "Assessment Generator": 20,
+        "Feedback Tool": 25,
+        "Classroom Admin": 10
+      },
+      "last_active": "2026-01-20T12:00:00",
+      "weekly_activity": {
+        "2026-W03": {
+          "monday": 120,
+          "tuesday": 90,
+          "wednesday": 60,
+          "thursday": 150,
+          "friday": 75,
+          "saturday": 45,
+          "sunday": 30
+        }
+      }
+    }
+  },
+  "professional_progress": {
+    "professional1@example.com": {
+      "courses_completed": 3,
+      "skill_level": 65,
+      "role": "healthcare",
+      "completed_modules": [
+        "Medical Imaging and AI",
+        "Healthcare Data Analytics",
+        "Clinical Decision Support Systems"
+      ],
+      "assessment_scores": {
+        "Data Analysis": 70,
+        "AI Understanding": 60,
+        "Industry Knowledge": 80,
+        "Practical Application": 50
+      },
+      "last_active": "2026-01-20T16:45:00",
+      "nudges_received": 8,
+      "nudges_completed": 6
+    }
+  },
+  "business_progress": {
+    "business1@example.com": {
+      "tools_adopted": 2,
+      "automations": 1,
+      "roi": 15,
+      "adopted_tools": [
+        "Customer Service Automation",
+        "AI-Assisted Marketing"
+      ],
+      "automation_setup": [
+        "Email Marketing Automation"
+      ],
+      "business_metrics": {
+        "customer_satisfaction": 85,
+        "operational_efficiency": 70,
+        "cost_reduction": 20,
+        "revenue_growth": 12
+      },
+      "last_active": "2026-01-20T10:30:00",
+      "weekly_activity": {
+        "2026-W03": {
+          "monday": 60,
+          "tuesday": 45,
+          "wednesday": 30,
+          "thursday": 90,
+          "friday": 75,
+          "saturday": 20,
+          "sunday": 0
+        }
+      }
+    }
+  },
+  "system_metrics": {
+    "total_users": 4,
+    "total_lessons_created": 8,
+    "total_mcq_attempts": 45,
+    "average_engagement_time": 45.5,
+    "active_users_this_week": 4
+  }
+}
