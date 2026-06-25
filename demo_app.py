@@ -5,7 +5,6 @@ Run with: streamlit run demo_app.py
 """
 
 import streamlit as st
-import json
 import random
 from datetime import datetime
 
@@ -13,8 +12,7 @@ from datetime import datetime
 st.set_page_config(
     page_title="AI Shiksha - Demo",
     page_icon="🎓",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
 # ==================== MOCK DATA ====================
@@ -33,6 +31,13 @@ MCQ_QUESTIONS = {
             "options": ["৩", "৪", "৫", "৬"],
             "correct": "৪",
             "explanation": "বর্গক্ষেত্রের ৪টি বাহু থাকে"
+        },
+        {
+            "id": 5,
+            "question": "১০ - ৪ = কত?",
+            "options": ["৪", "৫", "৬", "৭"],
+            "correct": "৬",
+            "explanation": "১০ - ৪ = ৬"
         }
     ],
     "বিজ্ঞান (Science)": [
@@ -42,6 +47,13 @@ MCQ_QUESTIONS = {
             "options": ["চাঁদ", "সূর্য", "মঙ্গল", "শুক্র"],
             "correct": "সূর্য",
             "explanation": "সূর্য পৃথিবীর নিকটতম নক্ষত্র"
+        },
+        {
+            "id": 6,
+            "question": "মানুষের শরীরে কতটি হাড় আছে?",
+            "options": ["১০০", "২০৬", "৩০০", "৪০০"],
+            "correct": "২০৬",
+            "explanation": "মানুষের শরীরে ২০৬টি হাড় আছে"
         }
     ],
     "ইংরেজি (English)": [
@@ -51,6 +63,13 @@ MCQ_QUESTIONS = {
             "options": ["কুকুর", "বিড়াল", "পাখি", "মাছ"],
             "correct": "বিড়াল",
             "explanation": "'Cat' অর্থ বিড়াল"
+        },
+        {
+            "id": 7,
+            "question": "'Beautiful' এর বাংলা অর্থ কী?",
+            "options": ["কুৎসিত", "সুন্দর", "বড়", "ছোট"],
+            "correct": "সুন্দর",
+            "explanation": "'Beautiful' অর্থ সুন্দর"
         }
     ]
 }
@@ -102,61 +121,62 @@ LEARNING_PATHS = {
 def mock_qa_response(question, language):
     """Generate mock responses for Q&A"""
     responses_bn = {
-        "ai": "এআই হলো কৃত্রিম বুদ্ধিমত্তা যা মেশিনকে মানুষের মতো চিন্তা করতে শেখায়।",
+        "ai": "এআই হলো কৃত্রিম বুদ্ধিমত্তা যা মেশিনকে মানুষের মতো চিন্তা করতে শেখায়। এটি আমাদের দৈনন্দিন জীবনের অনেক অংশে ব্যবহৃত হয়।",
         "education": "এআই শিক্ষায় ব্যক্তিগতকৃত শেখার অভিজ্ঞতা, স্বয়ংক্রিয় গ্রেডিং এবং অভিযোজিত মূল্যায়ন সক্ষম করে।",
         "job": "এআই অনেক চাকরি পরিবর্তন করছে, কিন্তু নতুন সুযোগও তৈরি করছে। দক্ষতা বৃদ্ধি গুরুত্বপূর্ণ।",
-        "default": f"আপনার প্রশ্নের উত্তরে: '{question}' - এটি একটি গুরুত্বপূর্ণ বিষয়। এআই শিখার মাধ্যমে আপনি আরও জানতে পারবেন।"
+        "default": f"আপনার প্রশ্নের উত্তরে: '{question}' - এটি একটি গুরুত্বপূর্ণ বিষয়। এআই শিখার মাধ্যমে আপনি আরও জানতে পারবেন। আমাদের প্ল্যাটফর্মে আরও অনেক কিছু আছে!"
     }
     
     responses_en = {
-        "ai": "AI is artificial intelligence that enables machines to think like humans.",
-        "education": "AI enables personalized learning, automated grading, and adaptive assessments.",
-        "job": "AI is transforming jobs but also creating new opportunities. Upskilling is key.",
-        "default": f"Answer to '{question}': This is an important topic. Learn more through AI Shiksha."
+        "ai": "AI is artificial intelligence that enables machines to think like humans. It's used in many parts of our daily lives.",
+        "education": "AI enables personalized learning, automated grading, and adaptive assessments in education.",
+        "job": "AI is transforming jobs but also creating new opportunities. Upskilling is key to staying relevant.",
+        "default": f"Answer to '{question}': This is an important topic. Learn more through AI Shiksha's comprehensive platform."
     }
     
     # Simple keyword matching
     keyword = "default"
-    if "ai" in question.lower() or "বুদ্ধিমত্তা" in question:
+    q_lower = question.lower()
+    if "ai" in q_lower or "বুদ্ধিমত্তা" in question or "artificial" in q_lower:
         keyword = "ai"
-    elif "শিক্ষা" in question or "education" in question.lower():
+    elif "শিক্ষা" in question or "education" in q_lower or "learn" in q_lower:
         keyword = "education"
-    elif "চাকরি" in question or "job" in question.lower():
+    elif "চাকরি" in question or "job" in q_lower or "work" in q_lower:
         keyword = "job"
     
     if language == "বাংলা":
-        return f"🤖 {responses_bn.get(keyword, responses_bn['default'])}\n\n📌 আরও জানতে আমাদের লার্নিং পাথে যোগ দিন!"
+        return f"🤖 {responses_bn.get(keyword, responses_bn['default'])}\n\n📌 আরও জানতে আমাদের লার্নিং পাথে যোগ দিন!\n🔗 https://aishiksha.edu.bd"
     else:
-        return f"🤖 {responses_en.get(keyword, responses_en['default'])}\n\n📌 Join our learning paths to know more!"
+        return f"🤖 {responses_en.get(keyword, responses_en['default'])}\n\n📌 Join our learning paths to know more!\n🔗 https://aishiksha.edu.bd"
 
 def mock_simplify_text(complex_text):
     """Mock text simplification"""
-    # If text is in Bengali
+    # If text is in Bengali (contains Bengali characters)
     if any('\u0980' <= char <= '\u09FF' for char in complex_text):
         return f"""
-        ✨ **সহজ সংস্করণ (Simplified):**
-        
-        {complex_text[:200]}...
-        
-        📌 **মূল পয়েন্ট (Key Points):**
-        • এই টেক্সটটির মূল বিষয় হল এআই এবং শিক্ষা
-        • এটি শিক্ষার্থীদের জন্য সহজ করে বোঝানো হয়েছে
-        • আরও বিস্তারিত জানতে আমাদের প্ল্যাটফর্ম ব্যবহার করুন
-        
-        🔗 **শিখুন আরও:** https://aishiksha.edu.bd
+✨ **সহজ সংস্করণ (Simplified):**
+
+{complex_text[:150]}...
+
+📌 **মূল পয়েন্ট (Key Points):**
+• এই টেক্সটটির মূল বিষয় হল এআই এবং শিক্ষা
+• এটি শিক্ষার্থীদের জন্য সহজ করে বোঝানো হয়েছে
+• আরও বিস্তারিত জানতে আমাদের প্ল্যাটফর্ম ব্যবহার করুন
+
+🔗 **শিখুন আরও:** https://aishiksha.edu.bd
         """
     else:
         return f"""
-        ✨ **Plain English Version:**
-        
-        {complex_text[:200]}...
-        
-        📌 **Key Takeaways:**
-        • This text focuses on AI and education
-        • Simplified for better understanding
-        • Use our platform for more details
-        
-        🔗 **Learn More:** https://aishiksha.edu.bd
+✨ **Plain English Version:**
+
+{complex_text[:150]}...
+
+📌 **Key Takeaways:**
+• This text focuses on AI and education
+• Simplified for better understanding
+• Use our platform for more details
+
+🔗 **Learn More:** https://aishiksha.edu.bd
         """
 
 # ==================== PAGE FUNCTIONS ====================
@@ -184,12 +204,12 @@ def show_home():
     ---
     ### 🌟 আমাদের বৈশিষ্ট্যসমূহ / Our Features
     
-    | বৈশিষ্ট্য | বিবরণ | |
-    |-----------|--------|---|
-    | 🗣️ **স্থানীয় ভাষায় Q&A** | যেকোনো প্রশ্ন, সহজ উত্তর | → |
-    | 🎯 **ব্যক্তিগতকৃত লার্নিং পাথ** | প্রতিটি ব্যবহারকারীর জন্য আলাদা | → |
-    | 📝 **MCQ অনুশীলন** | তাত্ক্ষণিক ফিডব্যাক সহ | → |
-    | 📄 **কনটেন্ট সিমপ্লিফায়ার** | জটিল টেক্সট, সহজ ভাষায় | → |
+    | বৈশিষ্ট্য | বিবরণ |
+    |-----------|--------|
+    | 🗣️ **স্থানীয় ভাষায় Q&A** | যেকোনো প্রশ্ন, সহজ উত্তর |
+    | 🎯 **ব্যক্তিগতকৃত লার্নিং পাথ** | প্রতিটি ব্যবহারকারীর জন্য আলাদা |
+    | 📝 **MCQ অনুশীলন** | তাত্ক্ষণিক ফিডব্যাক সহ |
+    | 📄 **কনটেন্ট সিমপ্লিফায়ার** | জটিল টেক্সট, সহজ ভাষায় |
     """)
     
     st.info("👈 বাম পাশের মেনু থেকে যেকোনো ফিচার নির্বাচন করুন / Select any feature from the sidebar")
@@ -202,18 +222,19 @@ def show_local_qa():
     with col1:
         language = st.radio("ভাষা / Language:", ["বাংলা", "English"], horizontal=True)
     with col2:
-        st.caption(f"বর্তমান সময়: {datetime.now().strftime('%I:%M %p')}")
+        st.caption(f"🕐 {datetime.now().strftime('%I:%M %p')}")
     
     st.divider()
     
     # Quick suggestion chips
     st.subheader("দ্রুত প্রশ্ন / Quick Questions")
-    cols = st.columns(4)
+    
     quick_questions = {
         "বাংলা": ["এআই কি?", "এআই কিভাবে কাজ করে?", "শিক্ষায় এআই এর ভূমিকা?", "এআই কি চাকরি নেবে?"],
         "English": ["What is AI?", "How does AI work?", "AI in education?", "Will AI take jobs?"]
     }
     
+    cols = st.columns(4)
     for idx, col in enumerate(cols):
         if idx < len(quick_questions[language]):
             if col.button(quick_questions[language][idx], use_container_width=True):
@@ -232,7 +253,7 @@ def show_local_qa():
         placeholder="যেমন: এআই কিভাবে শিক্ষাকে পরিবর্তন করছে? / Eg: How is AI transforming education?"
     )
     
-    col1, col2, col3 = st.columns([1, 1, 2])
+    col1, col2 = st.columns(2)
     with col1:
         ask_button = st.button("💬 জিজ্ঞাসা করুন / Ask", type="primary", use_container_width=True)
     with col2:
@@ -244,27 +265,22 @@ def show_local_qa():
     
     if ask_button and question:
         with st.spinner("🤔 উত্তর তৈরি হচ্ছে / Generating answer..."):
-            # Simulate processing time
             import time
-            time.sleep(1)
+            time.sleep(1.5)
             response = mock_qa_response(question, language)
-            
+        
         st.success("✅ উত্তর প্রস্তুত / Answer Ready!")
+        st.info(response)
         
-        # Display response in a nice box
-        st.markdown("""
-        <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #ff4b4b;">
-        """, unsafe_allow_html=True)
-        st.write(response)
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Feedback option
+        # Feedback
         st.caption("🔍 এই উত্তরটি কি সহায়ক ছিল? / Was this answer helpful?")
         col1, col2 = st.columns(2)
         with col1:
-            st.button("👍 হ্যাঁ", key="feedback_yes")
+            st.button("👍 হ্যাঁ / Yes", key="feedback_yes")
         with col2:
-            st.button("👎 না", key="feedback_no")
+            st.button("👎 না / No", key="feedback_no")
+    elif ask_button and not question:
+        st.warning("⚠️ অনুগ্রহ করে একটি প্রশ্ন লিখুন / Please type a question")
 
 def show_learning_paths():
     st.header("🎯 ব্যক্তিগতকৃত লার্নিং পাথ / Personalized Learning Paths")
@@ -273,8 +289,7 @@ def show_learning_paths():
     # Role selection
     selected_role = st.selectbox(
         "আপনি কে? / Who are you?",
-        ["Student", "Teacher", "Professional", "Business Owner"],
-        format_func=lambda x: f"{LEARNING_PATHS[x]['icon']} {x}"
+        ["Student", "Teacher", "Professional", "Business Owner"]
     )
     
     if selected_role:
@@ -295,12 +310,13 @@ def show_learning_paths():
                 with col_a:
                     st.write(f"{idx}. {module}")
                 with col_b:
-                    if st.button("শুরু করুন", key=f"start_{idx}"):
+                    if st.button("শুরু করুন", key=f"start_{idx}_{selected_role}"):
                         st.success(f"✅ মডিউল {idx} শুরু হয়েছে! / Module {idx} started!")
         
         with col2:
             st.subheader("📊 পরিসংখ্যান / Statistics")
-            st.metric("✅ সম্পন্ন মডিউল", f"{int(path_data['progress']/20)}/{len(path_data['modules'])}")
+            completed = int(path_data['progress']/25)
+            st.metric("✅ সম্পন্ন মডিউল", f"{completed}/{len(path_data['modules'])}")
             st.metric("⏱️ বাকি সময়", "~২.৫ ঘণ্টা")
             st.metric("🏆 অর্জিত স্কোর", f"{path_data['progress'] + 10}%")
             
@@ -326,12 +342,13 @@ def show_mcq_practice():
     questions = MCQ_QUESTIONS.get(subject, [])
     if questions:
         # Show question counter
-        st.caption(f"প্রশ্ন {st.session_state.mcq_index + 1} / {len(questions)}")
+        current_q = st.session_state.mcq_index % len(questions)
+        st.caption(f"প্রশ্ন {current_q + 1} / {len(questions)}")
         
-        q = questions[st.session_state.mcq_index % len(questions)]
+        q = questions[current_q]
         
         st.markdown(f"""
-        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border: 1px solid #dee2e6;">
+        <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #ff4b4b;">
             <h4>📌 {q['question']}</h4>
         </div>
         """, unsafe_allow_html=True)
@@ -340,10 +357,10 @@ def show_mcq_practice():
         selected_option = st.radio(
             "আপনার উত্তর নির্বাচন করুন / Select your answer:",
             q['options'],
-            key=f"mcq_{q['id']}"
+            key=f"mcq_{q['id']}_{current_q}"
         )
         
-        col1, col2, col3 = st.columns([1, 1, 2])
+        col1, col2 = st.columns(2)
         with col1:
             check_btn = st.button("✅ চেক করুন / Check", type="primary", use_container_width=True)
         with col2:
@@ -352,9 +369,9 @@ def show_mcq_practice():
         if check_btn:
             if selected_option == q['correct']:
                 st.balloons()
-                st.success(f"✅ সঠিক! / Correct! 🎉\n\n{q['explanation']}")
+                st.success(f"✅ সঠিক! / Correct! 🎉\n\n📖 {q['explanation']}")
             else:
-                st.error(f"❌ ভুল উত্তর। সঠিক উত্তর: {q['correct']}\n\n{q['explanation']}")
+                st.error(f"❌ ভুল উত্তর। সঠিক উত্তর: {q['correct']}\n\n📖 {q['explanation']}")
         
         if next_btn:
             st.session_state.mcq_index += 1
@@ -376,36 +393,37 @@ def show_content_simplifier():
     st.header("📄 কনটেন্ট সিমপ্লিফায়ার / Content Simplifier")
     st.markdown("*যেকোনো জটিল টেক্সট পেস্ট করুন, সহজ ভাষায় ব্যাখ্যা পান / Paste any text, get plain explanation*")
     
-    st.info("💡 **উদাহরণ টেক্সট / Sample Text:** একাডেমিক, আইনি, প্রযুক্তিগত বা যেকোনো জটিল টেক্সট পেস্ট করুন")
+    st.info("💡 **উদাহরণ টেক্সট / Sample Text:** নিচের বাটন ক্লিক করে টেস্ট করুন / Click buttons below to test")
     
     # Sample texts
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("📘 একাডেমিক টেক্সট / Academic Text", use_container_width=True):
+        if st.button("📘 বাংলা টেক্সট / Bengali Text", use_container_width=True):
             st.session_state.simplifier_text = """
-            কৃত্রিম বুদ্ধিমত্তা (AI) হলো কম্পিউটার বিজ্ঞানের একটি শাখা যা মেশিনকে মানুষের মতো চিন্তা, সিদ্ধান্ত গ্রহণ এবং সমস্যা সমাধানের ক্ষমতা দেয়। 
-            এটি মেশিন লার্নিং, ডিপ লার্নিং এবং ন্যাচারাল ল্যাঙ্গুয়েজ প্রসেসিংয়ের মতো উপ-ক্ষেত্র নিয়ে গঠিত।
+কৃত্রিম বুদ্ধিমত্তা (AI) হলো কম্পিউটার বিজ্ঞানের একটি শাখা যা মেশিনকে মানুষের মতো চিন্তা, সিদ্ধান্ত গ্রহণ এবং সমস্যা সমাধানের ক্ষমতা দেয়। এটি মেশিন লার্নিং, ডিপ লার্নিং এবং ন্যাচারাল ল্যাঙ্গুয়েজ প্রসেসিংয়ের মতো উপ-ক্ষেত্র নিয়ে গঠিত। এই প্রযুক্তি আমাদের দৈনন্দিন জীবনের অনেক অংশে ব্যবহৃত হচ্ছে।
             """
     with col2:
-        if st.button("⚖️ আইনি টেক্সট / Legal Text", use_container_width=True):
+        if st.button("🇬🇧 English Text", use_container_width=True):
             st.session_state.simplifier_text = """
-            This Agreement shall be governed by and construed in accordance with the laws of Bangladesh. 
-            Any dispute arising out of or in connection with this Agreement shall be subject to the exclusive jurisdiction of the courts of Dhaka.
+Artificial Intelligence (AI) is a branch of computer science that enables machines to think, make decisions, and solve problems like humans. It consists of subfields such as machine learning, deep learning, and natural language processing. This technology is being used in many parts of our daily lives.
             """
     
     # Main input
+    if "simplifier_text" not in st.session_state:
+        st.session_state.simplifier_text = ""
+    
     complex_text = st.text_area(
         "জটিল টেক্সট পেস্ট করুন / Paste complex text:",
-        value=st.session_state.get('simplifier_text', ''),
+        value=st.session_state.simplifier_text,
         height=150,
-        placeholder="যেমন: একটি জটিল প্রবন্ধ, আইনি নথি, বা প্রযুক্তিগত ডকুমেন্টেশন / Eg: a complex essay, legal document, or technical documentation"
+        placeholder="যেমন: একটি জটিল প্রবন্ধ, আইনি নথি, বা প্রযুক্তিগত ডকুমেন্টেশন"
     )
     
     if st.button("✨ সরলীকরণ করুন / Simplify", type="primary", use_container_width=True):
         if complex_text:
             with st.spinner("⏳ সরলীকরণ হচ্ছে / Simplifying..."):
                 import time
-                time.sleep(1.5)  # Simulate processing
+                time.sleep(1.5)
                 simplified = mock_simplify_text(complex_text)
             
             st.success("✅ সরলীকরণ সম্পন্ন! / Simplified Successfully!")
@@ -415,7 +433,7 @@ def show_content_simplifier():
             with col1:
                 st.markdown("**📄 মূল টেক্সট / Original Text**")
                 st.markdown(f"""
-                <div style="background-color: #ffe6e6; padding: 15px; border-radius: 10px; border-left: 5px solid #ff4b4b; height: 250px; overflow-y: scroll;">
+                <div style="background-color: #fff0f0; padding: 15px; border-radius: 10px; border-left: 5px solid #ff4b4b; height: 250px; overflow-y: scroll;">
                     {complex_text}
                 </div>
                 """, unsafe_allow_html=True)
@@ -423,7 +441,7 @@ def show_content_simplifier():
             with col2:
                 st.markdown("**✨ সরলীকৃত সংস্করণ / Simplified Version**")
                 st.markdown(f"""
-                <div style="background-color: #e6ffe6; padding: 15px; border-radius: 10px; border-left: 5px solid #00cc66; height: 250px; overflow-y: scroll;">
+                <div style="background-color: #f0fff0; padding: 15px; border-radius: 10px; border-left: 5px solid #00cc66; height: 250px; overflow-y: scroll;">
                     {simplified}
                 </div>
                 """, unsafe_allow_html=True)
@@ -433,11 +451,11 @@ def show_content_simplifier():
             st.subheader("📌 আরও যা করতে পারেন / You can also:")
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.button("🔊 অডিও শুনুন / Listen Audio")
+                st.button("🔊 অডিও শুনুন / Listen Audio", use_container_width=True)
             with col2:
-                st.button("📥 PDF ডাউনলোড করুন / Download PDF")
+                st.button("📥 PDF ডাউনলোড করুন / Download PDF", use_container_width=True)
             with col3:
-                st.button("📤 শেয়ার করুন / Share")
+                st.button("📤 শেয়ার করুন / Share", use_container_width=True)
         else:
             st.warning("⚠️ অনুগ্রহ করে কিছু টেক্সট পেস্ট করুন / Please paste some text")
 
@@ -445,13 +463,13 @@ def show_content_simplifier():
 def main():
     # Sidebar navigation
     with st.sidebar:
-        st.image("https://via.placeholder.com/300x100/4CAF50/FFFFFF?text=AI+Shiksha", use_container_width=True)
         st.title("🎓 AI Shiksha")
         st.caption("ভার্সন / Version 2.0 (Demo)")
         
         st.divider()
         
         # Navigation
+        st.markdown("### 📌 মেনু / Menu")
         pages = {
             "🏠 হোম / Home": show_home,
             "🗣️ Q&A (স্থানীয় ভাষা)": show_local_qa,
@@ -461,9 +479,10 @@ def main():
         }
         
         selection = st.radio(
-            "📌 মেনু / Menu",
+            "পৃষ্ঠা নির্বাচন করুন / Select Page",
             list(pages.keys()),
-            index=0
+            index=0,
+            label_visibility="collapsed"
         )
         
         st.divider()
@@ -474,17 +493,18 @@ def main():
         
         # Demo mode badge
         st.markdown("""
-        <div style="background-color: #ffd700; padding: 5px; border-radius: 5px; text-align: center;">
-            🚀 <strong>ডেমো মোড / Demo Mode</strong>
+        <div style="background-color: #ffd700; padding: 10px; border-radius: 5px; text-align: center; margin: 10px 0;">
+            🚀 <strong>ডেমো মোড</strong><br>
+            <span style="font-size: 12px;">Demo Mode</span>
         </div>
         """, unsafe_allow_html=True)
         
         st.divider()
-        st.caption("📞 সহায়তার জন্য / Support: support@aishiksha.edu.bd")
+        st.caption("📞 সহায়তার জন্য / Support:")
+        st.caption("support@aishiksha.edu.bd")
         st.caption("🔗 https://aishiksha.edu.bd")
     
     # Page content
-    st.markdown("---")
     pages[selection]()
 
 if __name__ == "__main__":
