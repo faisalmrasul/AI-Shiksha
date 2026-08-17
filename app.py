@@ -853,30 +853,36 @@ class ProfessionalOutcomeEngine:
         self.domain = domain
         self.country = country_code
         self.overlay = LocalCurriculumOverlay.get_overlay(country_code)
-        self.workflow_templates = self._initialize_workflow_templates()
     
-    def _initialize_workflow_templates(self):
-        """Initialize workflow templates for different tasks"""
-        return {
+    def generate_workflow(self, task_type):
+        """Generate AI-powered workflow for professional tasks"""
+        workflows = {
             'research': {
                 'steps': [
-                    'Define research question and objectives',
-                    'Gather and analyze data from multiple sources',
-                    'Synthesize findings and identify patterns',
-                    'Generate comprehensive report with insights',
+                    'Define research question',
+                    'Gather and analyze data',
+                    'Synthesize findings',
+                    'Generate report',
                     'Add citations and references'
                 ],
                 'output': 'Research synthesis with actionable insights',
-                'localization': f'Using {self.overlay.get("system", "global")} standards and {self.overlay.get("currency", "local")} context',
-                'time_estimate': '2-3 hours'
+                'localization': f'Using {self.overlay.get("system", "global")} standards and {self.overlay.get("currency", "local")} context'
             },
             'marketing': {
                 'steps': [
-                    'Define target audience and buyer personas',
-                    'Create content strategy and calendar',
-                    'Generate marketing copy and materials',
-                    'Design visual elements and assets',
-                    'Track and optimize performance metrics'
+                    'Define target audience',
+                    'Create content strategy',
+                    'Generate marketing copy',
+                    'Design visual elements',
+                    'Track and optimize performance'
                 ],
                 'output': 'Multi-channel marketing campaign',
-               
+                'localization': f'Localized for {self.country.upper()} market with {self.overlay.get("language", "English")} support'
+            },
+            'analytics': {
+                'steps': [
+                    'Collect data from all sources',
+                    'Clean and preprocess data',
+                    'Perform statistical analysis',
+                    'Create visualizations',
+                    'Interpret results and suggest actions
