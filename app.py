@@ -18,8 +18,21 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
 from enum import Enum
 import numpy as np
-import networkx as nx
-import matplotlib.pyplot as plt
+# ==================== OPTIONAL IMPORTS WITH FALLBACK ====================
+# Try to import networkx and matplotlib for knowledge graph visualization
+try:
+    import networkx as nx
+    HAS_NETWORKX = True
+except ImportError:
+    nx = None
+    HAS_NETWORKX = False
+
+try:
+    import matplotlib.pyplot as plt
+    HAS_MATPLOTLIB = True
+except ImportError:
+    plt = None
+    HAS_MATPLOTLIB = False
 
 # ==================== PAGE CONFIGURATION - MUST BE FIRST ====================
 st.set_page_config(
