@@ -348,11 +348,11 @@ class SMEOutcomeEngine:
         }
         return rails.get(self.country, 'M-Pesa, Airtel Money')
 
-
 # ==================== MAIN APPLICATION ====================
 
-# Initialize session state - DEFINITION FIRST
+# Initialize session state
 def init_session_state():
+    """Initialize all session state variables"""
     defaults = {
         'user_role': None,
         'country_code': 'kenya',
@@ -363,13 +363,14 @@ def init_session_state():
         'weak_areas': [],
         'domain': 'business',
         'business_type': 'retail',
-        'preferred_language': 'English'
+        'preferred_language': 'English',
+        'doc_analysis_history': []  # Added for document analysis tracking
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
-# THEN CALL THE FUNCTION
+# Call the function to initialize
 init_session_state()
 
 # Page configuration
@@ -379,6 +380,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+
 # Page configuration
 st.set_page_config(
     page_title="AI Shiksha - Universal Core + Local Overlay",
