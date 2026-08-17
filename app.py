@@ -351,7 +351,7 @@ class SMEOutcomeEngine:
 
 # ==================== MAIN APPLICATION ====================
 
-# Initialize session state
+# Initialize session state - DEFINITION FIRST
 def init_session_state():
     defaults = {
         'user_role': None,
@@ -369,8 +369,16 @@ def init_session_state():
         if key not in st.session_state:
             st.session_state[key] = value
 
+# THEN CALL THE FUNCTION
 init_session_state()
 
+# Page configuration
+st.set_page_config(
+    page_title="AI Shiksha - Universal Core + Local Overlay",
+    page_icon="🌍",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 # Page configuration
 st.set_page_config(
     page_title="AI Shiksha - Universal Core + Local Overlay",
