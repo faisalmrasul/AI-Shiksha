@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 import hashlib
 import io
 import re
+import time
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
 from enum import Enum
@@ -37,6 +38,15 @@ try:
     import docx
 except ImportError:
     docx = None
+
+# OCR is optional: real extraction needs pytesseract + the Tesseract binary
+# installed on the host. Falls back gracefully (see MultimodalOCREngine) if absent.
+try:
+    import pytesseract
+    from PIL import Image
+    OCR_AVAILABLE = True
+except ImportError:
+    OCR_AVAILABLE = False
 
 # ==================== TEACHER DATA MODELS ====================
 
@@ -2917,6 +2927,430 @@ class LocalCurriculumOverlay:
         return overlay.get('grade_levels', ['Primary', 'Secondary'])
 
 
+# ==================== STUDENT LEARNING INTELLIGENCE ENGINE ====================
+# Data Infrastructure & Adaptive Algorithms + Pedagogical Rules + Gamification +
+# Analytics & Safety Controls for the Student segment.
+#
+# Everything below runs locally against st.session_state (in-memory for the
+# session) — nothing is written to a database or file, and nothing is sent to
+# any external training pipeline, which is the concrete implementation of the
+# COPPA/FERPA data-isolation requirement in this demo (see PrivacyControlEngine).
+
+@dataclass
+class SpacedRepetitionCard:
+    """A single memory item tracked with the SM-2 algorithm (Piotr Wozniak's
+    SuperMemo-2 scheduler — the same family of algorithm Anki's default
+    scheduler is based on)."""
+    concept_id: str
+    subject: str
+    concept_name: str
+    easiness: float = 2.5
+    interval_days: int = 0
+    repetitions: int = 0
+    next_review: str = field(default_factory=lambda: datetime.now().strftime('%Y-%m-%d'))
+    last_reviewed: Optional[str] = None
+    lapses: int = 0
+
+
+class SpacedRepetitionEngine:
+    """SM-2 style scheduler. Quality is graded 0-5 by the student's self-assessed
+    recall: 0-2 = forgotten/hard, 3 = correct with effort, 4 = correct, 5 = easy."""
+
+    @staticmethod
+    def schedule(card: SpacedRepetitionCard, quality: int) -> SpacedRepetitionCard:
+        quality = max(0, min(5, quality))
+
+        if quality < 3:
+            card.repetitions = 0
+            card.interval_days = 1
+            card.lapses += 1
+        else:
+            if card.repetitions == 0:
+                card.interval_days = 1
+            elif card.repetitions == 1:
+                card.interval_days = 6
+            else:
+                card.interval_days = max(1, round(card.interval_days * card.easiness))
+            card.repetitions += 1
+
+        card.easiness = card.easiness + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+        card.easiness = max(1.3, round(card.easiness, 2))
+
+        card.last_reviewed = datetime.now().strftime('%Y-%m-%d')
+        card.next_review = (datetime.now() + timedelta(days=card.interval_days)).strftime('%Y-%m-%d')
+        return card
+
+    @staticmethod
+    def due_cards(cards: Dict[str, "SpacedRepetitionCard"]) -> List["SpacedRepetitionCard"]:
+        today = datetime.now().strftime('%Y-%m-%d')
+        due = [c for c in cards.values() if c.next_review <= today]
+        return sorted(due, key=lambda c: c.next_review)
+
+    @staticmethod
+    def get_or_create(cards: Dict[str, "SpacedRepetitionCard"], concept_id, subject, concept_name):
+        if concept_id not in cards:
+            cards[concept_id] = SpacedRepetitionCard(concept_id=concept_id, subject=subject, concept_name=concept_name)
+        return cards[concept_id]
+
+
+@dataclass
+class KnowledgeNode:
+    node_id: str
+    name: str
+    subject: str
+    prerequisites: List[str] = field(default_factory=list)
+
+
+class PrerequisiteKnowledgeGraph:
+    """Node-based dependency graphs per subject. A node unlocks only once every
+    prerequisite node is mastered (e.g. Factoring must be mastered before
+    Quadratic Equations unlocks).
+
+    These graphs are illustrative starter content for the demo, not a
+    curriculum-authority mapping — swap in real syllabus dependency data for
+    production use."""
+
+    GRAPHS: Dict[str, List[KnowledgeNode]] = {
+        'mathematics': [
+            KnowledgeNode('num_ops', 'Number Operations', 'mathematics', []),
+            KnowledgeNode('fractions', 'Fractions & Decimals', 'mathematics', ['num_ops']),
+            KnowledgeNode('algebra_basics', 'Algebraic Expressions', 'mathematics', ['fractions']),
+            KnowledgeNode('linear_eq', 'Linear Equations', 'mathematics', ['algebra_basics']),
+            KnowledgeNode('factoring', 'Factoring', 'mathematics', ['linear_eq']),
+            KnowledgeNode('quadratics', 'Quadratic Equations', 'mathematics', ['factoring']),
+            KnowledgeNode('functions', 'Functions & Graphs', 'mathematics', ['quadratics']),
+        ],
+        'english language': [
+            KnowledgeNode('phonics', 'Phonics & Vocabulary', 'english language', []),
+            KnowledgeNode('grammar_basics', 'Grammar Basics', 'english language', ['phonics']),
+            KnowledgeNode('sentence_struct', 'Sentence Structure', 'english language', ['grammar_basics']),
+            KnowledgeNode('paragraph', 'Paragraph Writing', 'english language', ['sentence_struct']),
+            KnowledgeNode('essay', 'Essay Composition', 'english language', ['paragraph']),
+        ],
+        'basic science': [
+            KnowledgeNode('sci_method', 'Scientific Method', 'basic science', []),
+            KnowledgeNode('matter', 'States of Matter', 'basic science', ['sci_method']),
+            KnowledgeNode('cells', 'Cells & Living Things', 'basic science', ['sci_method']),
+            KnowledgeNode('energy', 'Energy & Forces', 'basic science', ['matter']),
+            KnowledgeNode('ecosystems', 'Ecosystems', 'basic science', ['cells']),
+        ],
+        'geography': [
+            KnowledgeNode('maps', 'Map Reading', 'geography', []),
+            KnowledgeNode('landforms', 'Landforms', 'geography', ['maps']),
+            KnowledgeNode('climate', 'Climate Zones', 'geography', ['maps']),
+            KnowledgeNode('regions', 'Regional Geography', 'geography', ['landforms', 'climate']),
+        ],
+        'general knowledge': [
+            KnowledgeNode('gk_basics', 'General Awareness Basics', 'general knowledge', []),
+            KnowledgeNode('gk_current', 'Current Affairs', 'general knowledge', ['gk_basics']),
+        ],
+    }
+
+    @classmethod
+    def get_graph(cls, subject: str) -> List[KnowledgeNode]:
+        return cls.GRAPHS.get(subject.lower(), cls.GRAPHS['mathematics'])
+
+    @staticmethod
+    def compute_status(nodes: List[KnowledgeNode], mastered_ids: set) -> Dict[str, str]:
+        status = {}
+        for node in nodes:
+            if node.node_id in mastered_ids:
+                status[node.node_id] = 'mastered'
+            elif all(p in mastered_ids for p in node.prerequisites):
+                status[node.node_id] = 'unlocked'
+            else:
+                status[node.node_id] = 'locked'
+        return status
+
+    @staticmethod
+    def next_recommended(nodes: List[KnowledgeNode], mastered_ids: set) -> Optional[KnowledgeNode]:
+        for node in nodes:
+            if node.node_id not in mastered_ids and all(p in mastered_ids for p in node.prerequisites):
+                return node
+        return None
+
+
+class MultimodalOCREngine:
+    """Ingests photos of handwritten math, diagrams, or textbook pages and turns
+    them into text the practice engine can work with.
+
+    Real extraction requires the `pytesseract` package AND the Tesseract OCR
+    binary installed on the host machine. I cannot confirm Tesseract is
+    installed in your deployment environment — verify with `tesseract --version`.
+    If either is missing, this engine reports that clearly and offers a manual
+    transcription fallback instead of failing silently or faking a result."""
+
+    @staticmethod
+    def is_available() -> bool:
+        return OCR_AVAILABLE
+
+    @staticmethod
+    def extract_text(image_bytes) -> Dict[str, Any]:
+        if not OCR_AVAILABLE:
+            return {
+                'success': False,
+                'text': '',
+                'error': 'pytesseract / Pillow / Tesseract not available on this server.'
+            }
+        try:
+            image = Image.open(io.BytesIO(image_bytes))
+            text = pytesseract.image_to_string(image)
+            return {'success': True, 'text': text.strip(), 'error': None}
+        except Exception as e:
+            return {'success': False, 'text': '', 'error': str(e)}
+
+
+class SocraticGuardrailEngine:
+    """System-prompt-style rules that stop the tutor from ever handing over the
+    final answer directly. Produces a graduated hint ladder (nudge -> strategy
+    -> applied step -> self-check) and layers a Contextual Content Shield that
+    blocks non-academic, off-topic, or direct cheating requests.
+
+    The content shield here is a simple rule-based keyword filter for demo
+    purposes — it is not a production-grade moderation system and will miss
+    paraphrased attempts; treat it as a starting point, not a guarantee."""
+
+    OFF_TOPIC_MARKERS = [
+        'write my essay', 'do my homework for me', 'give me the answer',
+        'just tell me the answer', 'cheat on', 'exam answers', 'test answers',
+        'homework answers', 'do this for me', 'skip the explanation'
+    ]
+
+    @classmethod
+    def content_shield(cls, text: str) -> Dict[str, Any]:
+        lowered = (text or '').lower()
+        flagged = [m for m in cls.OFF_TOPIC_MARKERS if m in lowered]
+        return {
+            'blocked': len(flagged) > 0,
+            'reason': f"This looks like a request to skip learning ({', '.join(flagged)}) rather than a study question." if flagged else None
+        }
+
+    @staticmethod
+    def hint_ladder(question: Dict[str, Any]) -> List[str]:
+        base_hint = question.get('socratic_hint', "Think about what the question is really asking.")
+        return [
+            "🤔 Nudge: What do you already know that connects to this problem?",
+            f"💡 Strategy: {base_hint}",
+            "🔍 Applied step: Try that strategy on just the first part of the problem.",
+            "✅ Self-check: Redo your last step — does it fully answer the original question?"
+        ]
+
+    @classmethod
+    def get_hint(cls, question: Dict[str, Any], hint_level: int) -> str:
+        ladder = cls.hint_ladder(question)
+        idx = max(0, min(hint_level, len(ladder) - 1))
+        return ladder[idx]
+
+
+class DynamicDifficultyBalancer:
+    """Shifts difficulty algorithmically: breaks a problem down into sub-steps
+    after two consecutive wrong attempts, and escalates the difficulty tier
+    after a win streak of three or more correct answers."""
+
+    LEVELS = ['easy', 'medium', 'hard']
+
+    @classmethod
+    def next_difficulty(cls, current: str, wrong_streak: int, win_streak: int) -> Dict[str, Any]:
+        idx = cls.LEVELS.index(current) if current in cls.LEVELS else 1
+        new_idx = idx
+        break_down = False
+
+        if wrong_streak >= 2:
+            break_down = True
+            new_idx = max(0, idx - 1)
+        elif win_streak >= 3:
+            new_idx = min(len(cls.LEVELS) - 1, idx + 1)
+
+        return {
+            'difficulty': cls.LEVELS[new_idx],
+            'break_into_substeps': break_down,
+            'changed': new_idx != idx
+        }
+
+
+class VoiceActiveRecallEngine:
+    """Lets a student explain a concept out loud so verbal comprehension can be
+    evaluated, rather than only multiple-choice recall.
+
+    IMPORTANT — verify before relying on this in production: this demo does
+    not ship a real speech-to-text model. It captures audio via Streamlit's
+    built-in `st.audio_input` widget, but transcription needs a real STT
+    backend wired into `transcribe_audio()` below (for example a hosted
+    speech-to-text API) — I have not integrated one, since doing so would
+    require an API key and network access this environment doesn't have. The
+    scoring logic (`score_explanation`) works on whatever transcript text it
+    is given, whether typed manually or produced by a real STT service."""
+
+    @staticmethod
+    def transcribe_audio(audio_bytes) -> Dict[str, Any]:
+        return {
+            'success': False,
+            'transcript': '',
+            'note': 'No speech-to-text backend is connected in this demo. Type what you said below, or wire a real STT API into transcribe_audio().'
+        }
+
+    @staticmethod
+    def score_explanation(transcript: str, key_terms: List[str]) -> Dict[str, Any]:
+        lowered = (transcript or '').lower()
+        hit = [t for t in key_terms if t.lower() in lowered]
+        missed = [t for t in key_terms if t.lower() not in lowered]
+        coverage = round(100 * len(hit) / len(key_terms), 1) if key_terms else 0.0
+        return {'coverage_pct': coverage, 'covered_terms': hit, 'missed_terms': missed}
+
+
+class InstantStepEvaluator:
+    """Split-screen, line-by-line evaluation of a student's worked solution.
+    Matching is a simple keyword-overlap heuristic against expected-step text
+    for this demo — not a symbolic math checker — so treat 'correct' as
+    'closely matches the expected step', not a verified proof."""
+
+    @staticmethod
+    def evaluate_steps(student_steps: List[str], expected_steps: List[str]) -> List[Dict[str, Any]]:
+        results = []
+        for i, exp in enumerate(expected_steps):
+            student_line = student_steps[i] if i < len(student_steps) else ''
+            exp_keywords = [w.strip('.,()=') for w in exp.lower().split() if len(w) > 2]
+            hits = sum(1 for w in exp_keywords if w in student_line.lower())
+            ratio = hits / max(1, len(exp_keywords))
+            if not student_line.strip():
+                status = 'empty'
+            elif ratio >= 0.6:
+                status = 'correct'
+            elif ratio >= 0.3:
+                status = 'partial'
+            else:
+                status = 'incorrect'
+            results.append({'step_number': i + 1, 'expected': exp, 'student_input': student_line, 'status': status})
+        return results
+
+
+@dataclass
+class AttemptLog:
+    concept_id: str
+    subject: str
+    solve_time_sec: float
+    edit_attempts: int
+    self_reported_confidence: int  # 1-5
+    correct: bool
+    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+
+
+class LatentKnowledgeGapTracker:
+    """Backend measurement of solve speed, edit/backtrack attempts, and
+    self-reported confidence, combined into a hidden-weakness score per
+    concept. A concept flagged 'overconfident relative to accuracy' or 'slow
+    with low accuracy' surfaces as a latent gap even when raw accuracy looks
+    acceptable on its own.
+
+    The scoring weights below are a reasonable heuristic for a demo, not a
+    validated psychometric model — treat the flags as prompts to look closer,
+    not a certified diagnosis of the student's understanding."""
+
+    @staticmethod
+    def analyze(logs: List[AttemptLog]) -> List[Dict[str, Any]]:
+        by_concept: Dict[str, List[AttemptLog]] = {}
+        for log in logs:
+            by_concept.setdefault(log.concept_id, []).append(log)
+
+        flags = []
+        for concept_id, entries in by_concept.items():
+            avg_time = sum(e.solve_time_sec for e in entries) / len(entries)
+            avg_edits = sum(e.edit_attempts for e in entries) / len(entries)
+            avg_confidence = sum(e.self_reported_confidence for e in entries) / len(entries)
+            accuracy = sum(1 for e in entries if e.correct) / len(entries)
+
+            gap_score = 0
+            reasons = []
+            if accuracy < 0.6:
+                gap_score += 2
+                reasons.append('low accuracy')
+            if avg_confidence >= 4 and accuracy < 0.6:
+                gap_score += 3
+                reasons.append('overconfident relative to accuracy')
+            if avg_edits >= 3:
+                gap_score += 1
+                reasons.append('high edit/backtrack count')
+            if avg_time > 90 and accuracy < 0.8:
+                gap_score += 1
+                reasons.append('slow relative to accuracy')
+
+            if gap_score > 0:
+                flags.append({
+                    'concept_id': concept_id,
+                    'subject': entries[0].subject,
+                    'gap_score': gap_score,
+                    'reasons': reasons,
+                    'avg_time_sec': round(avg_time, 1),
+                    'avg_edits': round(avg_edits, 1),
+                    'avg_confidence': round(avg_confidence, 1),
+                    'accuracy_pct': round(accuracy * 100, 1)
+                })
+
+        return sorted(flags, key=lambda f: -f['gap_score'])
+
+
+class HabitStreakEngine:
+    """Daily habit-loop mechanics: streak tracking with a grace-period 'streak
+    repair' buffer (so one missed day doesn't erase progress) and 5-minute
+    micro-session pacing. Streamlit apps can't send real OS/browser push
+    notifications on their own — I have not faked that — so this surfaces
+    reminders as in-app banners instead; wire a real push service (e.g. web
+    push or a mobile notification SDK) at the deployment layer if you need
+    true push notifications."""
+
+    MICRO_SESSION_SECONDS = 5 * 60
+
+    @staticmethod
+    def record_activity(last_active_date: Optional[str], current_streak: int, repair_tokens: int) -> Dict[str, Any]:
+        today = datetime.now().date()
+        if last_active_date is None:
+            return {'streak': 1, 'repair_tokens': repair_tokens, 'message': 'Streak started! 🔥', 'date': today.isoformat()}
+
+        last_date = datetime.fromisoformat(last_active_date).date()
+        gap = (today - last_date).days
+
+        if gap == 0:
+            return {'streak': max(1, current_streak), 'repair_tokens': repair_tokens, 'message': 'Already logged today ✅', 'date': today.isoformat()}
+        elif gap == 1:
+            return {'streak': current_streak + 1, 'repair_tokens': repair_tokens, 'message': f'Streak extended to {current_streak + 1} days! 🔥', 'date': today.isoformat()}
+        elif gap == 2 and repair_tokens > 0:
+            return {'streak': current_streak + 1, 'repair_tokens': repair_tokens - 1, 'message': 'Missed a day, but a streak-repair buffer saved it! 🩹🔥', 'date': today.isoformat()}
+        else:
+            return {'streak': 1, 'repair_tokens': repair_tokens, 'message': "Streak reset — let's build a new one!", 'date': today.isoformat()}
+
+
+class PrivacyControlEngine:
+    """COPPA/FERPA-aligned data controls for this session.
+
+    Fact, not marketing: this app keeps student work in Streamlit's in-memory
+    `st.session_state` only. Nothing here is written to a database or file by
+    default, and nothing in this codebase sends student data to a model
+    training pipeline. That said, I cannot verify the privacy posture of
+    whatever server or hosting platform you deploy this on (logs, host-level
+    disk caching, etc.) — this class controls the application layer only.
+    It adds an explicit, visible consent flag and a one-click purge so the
+    zero-retention behavior is verifiable rather than just implied."""
+
+    SESSION_ONLY_KEYS = [
+        'sr_cards', 'mastered_concepts', 'attempt_logs', 'completed_lessons',
+        'achievements', 'weak_areas', 'ocr_history', 'voice_sessions'
+    ]
+
+    @classmethod
+    def purge(cls, session_state) -> None:
+        for k in cls.SESSION_ONLY_KEYS:
+            if k in session_state:
+                current = session_state[k]
+                if isinstance(current, dict):
+                    session_state[k] = {}
+                elif isinstance(current, list):
+                    session_state[k] = []
+        session_state.student_score = 0
+        session_state.streak = 0
+        session_state.wrong_streak = 0
+        session_state.win_streak = 0
+
+
 # ==================== SEGMENT-SPECIFIC OUTCOME ENGINES ====================
 
 class StudentOutcomeEngine:
@@ -3372,6 +3806,19 @@ def init_session_state():
         'achievements': [],
         'streak': 0,
         'weak_areas': [],
+        # --- Student Learning Intelligence additions ---
+        'sr_cards': {},                 # concept_id -> SpacedRepetitionCard
+        'mastered_concepts': {},        # subject -> list[node_id]
+        'attempt_logs': [],             # list[dict] mirroring AttemptLog fields
+        'wrong_streak': 0,              # consecutive wrong answers (difficulty balancer)
+        'win_streak': 0,                # consecutive correct answers (difficulty balancer)
+        'current_difficulty': 'medium',
+        'hint_level': {},               # question_id -> current hint rung shown
+        'last_active_date': None,       # for HabitStreakEngine
+        'streak_repair_tokens': 2,
+        'ocr_history': [],
+        'voice_sessions': [],
+        'privacy_consent': True,        # zero-retention acknowledgement, on by default
         'domain': 'business',
         'business_type': 'retail',
         'preferred_language': 'English',
@@ -3564,7 +4011,7 @@ user_role = st.sidebar.selectbox(
 st.session_state.user_role = user_role
 
 menu_options = {
-    'Student': ['🎓 Dashboard', '📝 Practice', '📊 Progress', '🏆 Achievements', '📄 Document Analysis'],
+    'Student': ['🎓 Dashboard', '📝 Practice', '🧠 Knowledge Map', '🔁 Review Queue', '📊 Progress', '🏆 Achievements', '🔒 Privacy & Safety', '📄 Document Analysis'],
     'Teacher': ['👨‍🏫 Dashboard', '📋 Lesson Builder', '📝 Assessment', '⏱️ Hours Saved', '📄 Document Analysis', '📑 LMS Integration', '🎯 Standards Mapping'],
     'Professional': ['💼 Dashboard', '🔬 Research', '📊 Portfolio', '📄 Document Analysis', '📑 Workspace', '⚡ Watchdogs'],
     'SME Business Owner': ['🏢 Dashboard', '📈 Growth', '🤖 Automation', '📊 Analytics', '📄 Document Analysis', '🔌 API Connectors', '⚡ Webhooks']
@@ -5329,69 +5776,438 @@ def show_home():
         st.markdown("✅ Webhooks & alerts")
 
 
+def _log_daily_activity():
+    """Wires HabitStreakEngine into session_state once per page load."""
+    result = HabitStreakEngine.record_activity(
+        st.session_state.last_active_date,
+        st.session_state.streak,
+        st.session_state.streak_repair_tokens
+    )
+    if result['date'] != st.session_state.last_active_date:
+        st.session_state.streak = result['streak']
+        st.session_state.streak_repair_tokens = result['repair_tokens']
+        st.session_state.last_active_date = result['date']
+        if 'streak started' not in result['message'].lower() and 'already logged' not in result['message'].lower():
+            st.toast(result['message'])
+
+
+def _award_achievement(name: str):
+    if name not in st.session_state.achievements:
+        st.session_state.achievements.append(name)
+        st.toast(f"🏆 Achievement unlocked: {name}")
+
+
 def show_student_dashboard():
     st.header(f"🎓 Student Dashboard - {country_code.title()}")
-    
+    _log_daily_activity()
+
     student_engine = StudentOutcomeEngine(country_code)
-    
-    col1, col2, col3, col4 = st.columns(4)
+
+    col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Current Score", f"{st.session_state.student_score}%")
-    col2.metric("Day Streak", f"{st.session_state.streak} days")
+    col2.metric("Day Streak", f"{st.session_state.streak} days", help="Streak-repair buffers left: " + str(st.session_state.streak_repair_tokens))
     col3.metric("Completed Lessons", len(st.session_state.completed_lessons))
     col4.metric("Achievements", len(st.session_state.achievements))
-    
-    st.subheader("📝 Adaptive Practice")
-    st.caption(f"Aligned with {overlay.get('system', 'Universal')} curriculum")
-    
-    subject = st.selectbox("Select Subject:", ['Mathematics', 'English Language', 'Basic Science', 'Geography', 'General Knowledge'])
-    difficulty = st.select_slider("Difficulty Level:", ['easy', 'medium', 'hard'], value='medium')
-    
-    if st.button("🎯 Generate Practice Questions", type="primary"):
-        questions = student_engine.get_adaptive_questions(subject.lower(), difficulty)
-        
-        if questions:
-            for q in questions[:2]:
-                st.markdown(f"### Question: {q['question']}")
-                st.caption(f"📚 {q.get('exam_style', 'Local exam')} style")
-                
-                with st.expander("💡 Socratic Hint"):
-                    st.info(q.get('socratic_hint', 'Think step by step'))
-                
-                selected = st.radio(f"Select your answer:", q['options'], key=f"q_{q['id']}")
-                
-                if st.button(f"Submit Answer {q['id']}", key=f"submit_{q['id']}"):
-                    if selected == q['correct']:
-                        st.balloons()
-                        st.success(f"✅ Correct! {q.get('explanation', '')}")
-                        st.session_state.student_score = min(100, st.session_state.student_score + 5)
-                        st.session_state.streak += 1
-                    else:
-                        st.error(f"❌ Incorrect. The correct answer is {q['correct']}")
-                        st.session_state.streak = 0
-    
-    st.subheader("📊 Progress Tracking")
-    
+    due_count = len(SpacedRepetitionEngine.due_cards(st.session_state.sr_cards))
+    col5.metric("Cards Due for Review", due_count)
+
+    if due_count > 0:
+        st.info(f"🔁 You have **{due_count}** concept(s) due for review today — right before you'd naturally start forgetting them. Head to **Review Queue**.")
+
+    st.divider()
+    st.subheader("⏱️ Micro-Session")
+    st.caption("A short, low-friction session beats a long one you skip. This one is paced for ~5 minutes.")
+    if 'micro_session_start' not in st.session_state:
+        st.session_state.micro_session_start = None
+
+    msc1, msc2 = st.columns([1, 3])
+    with msc1:
+        if st.session_state.micro_session_start is None:
+            if st.button("▶️ Start 5-min session"):
+                st.session_state.micro_session_start = time.time()
+                st.rerun()
+        else:
+            elapsed = time.time() - st.session_state.micro_session_start
+            remaining = max(0, HabitStreakEngine.MICRO_SESSION_SECONDS - elapsed)
+            if remaining <= 0:
+                st.success("✅ Micro-session complete!")
+                _award_achievement("5-Minute Finisher")
+                if st.button("Reset"):
+                    st.session_state.micro_session_start = None
+                    st.rerun()
+            else:
+                mins, secs = divmod(int(remaining), 60)
+                with msc2:
+                    st.progress(1 - remaining / HabitStreakEngine.MICRO_SESSION_SECONDS, text=f"{mins:02d}:{secs:02d} remaining — head to Practice")
+
+    st.divider()
+    st.subheader("📊 Progress Snapshot")
     weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Current']
     scores = [45, 52, 58, 63, st.session_state.student_score]
-    
     df = pd.DataFrame({'Week': weeks, 'Score': scores})
     st.line_chart(df.set_index('Week'))
-    
+
     col1, col2 = st.columns(2)
     with col1:
         grade = student_engine._calculate_projected_grade({'score': st.session_state.student_score})
         st.metric("Projected Grade", grade)
-    
     with col2:
         if st.session_state.student_score >= 60:
             st.success("✅ On track for success!")
         else:
             st.warning("📚 Keep practicing to improve")
-    
+
+
+def show_student_practice():
+    st.header("📝 Adaptive Practice")
+    st.caption(f"Aligned with {overlay.get('system', 'Universal')} curriculum · Socratic guardrails on · Difficulty auto-balances")
+    _log_daily_activity()
+
+    student_engine = StudentOutcomeEngine(country_code)
+
+    subject = st.selectbox("Select Subject:", ['Mathematics', 'English Language', 'Basic Science', 'Geography', 'General Knowledge'], key='practice_subject')
+
+    d1, d2 = st.columns([2, 2])
+    with d1:
+        st.session_state.current_difficulty = st.select_slider(
+            "Difficulty Level (auto-adjusts as you go):",
+            ['easy', 'medium', 'hard'],
+            value=st.session_state.current_difficulty
+        )
+    with d2:
+        st.caption(f"Wrong-answer streak: {st.session_state.wrong_streak} · Win streak: {st.session_state.win_streak}")
+        st.caption("2 wrong in a row → breaks the next problem into sub-steps. 3 correct in a row → levels up.")
+
+    tabs = st.tabs(["✍️ Answer Questions", "📸 Scan Handwritten Work (OCR)", "🎙️ Explain It Out Loud (Voice Recall)", "🧮 Step-by-Step Check"])
+
+    # ---- Tab 1: Adaptive MCQ practice with Socratic hint ladder ----
+    with tabs[0]:
+        if st.button("🎯 Generate Practice Questions", type="primary"):
+            st.session_state['_practice_questions'] = student_engine.get_adaptive_questions(subject.lower(), st.session_state.current_difficulty)
+
+        questions = st.session_state.get('_practice_questions', [])
+        if questions:
+            for q in questions[:2]:
+                st.markdown(f"### Question: {q['question']}")
+                st.caption(f"📚 {q.get('exam_style', 'Local exam')} style")
+
+                qid = q['id']
+                hint_key = f"hint_level_{qid}"
+                current_hint_level = st.session_state.hint_level.get(hint_key, -1)
+
+                hc1, hc2 = st.columns([1, 3])
+                with hc1:
+                    if st.button("💡 Give me a hint (never the answer)", key=f"hintbtn_{qid}"):
+                        current_hint_level = min(current_hint_level + 1, 3)
+                        st.session_state.hint_level[hint_key] = current_hint_level
+                if current_hint_level >= 0:
+                    st.info(SocraticGuardrailEngine.get_hint(q, current_hint_level))
+
+                selected = st.radio("Select your answer:", q['options'], key=f"q_{qid}")
+
+                free_text = st.text_input("Or ask a follow-up question about this problem:", key=f"freetext_{qid}")
+                if free_text:
+                    shield = SocraticGuardrailEngine.content_shield(free_text)
+                    if shield['blocked']:
+                        st.warning(f"🛡️ I can't do that: {shield['reason']} I can only give hints, not the final answer or someone else's work.")
+
+                start_time = st.session_state.setdefault(f"start_{qid}", time.time())
+
+                if st.button(f"Submit Answer {qid}", key=f"submit_{qid}"):
+                    solve_time = time.time() - start_time
+                    confidence = st.session_state.get(f"conf_{qid}", 3)
+                    correct = (selected == q['correct'])
+                    concept_id = f"{subject.lower()}::{q.get('question','')[:24]}"
+
+                    st.session_state.attempt_logs.append(AttemptLog(
+                        concept_id=concept_id, subject=subject.lower(), solve_time_sec=round(solve_time, 1),
+                        edit_attempts=current_hint_level + 1, self_reported_confidence=confidence, correct=correct
+                    ).__dict__)
+
+                    if correct:
+                        st.balloons()
+                        st.success(f"✅ Correct! {q.get('explanation', '')}")
+                        st.session_state.student_score = min(100, st.session_state.student_score + 5)
+                        st.session_state.win_streak += 1
+                        st.session_state.wrong_streak = 0
+                        card = SpacedRepetitionEngine.get_or_create(st.session_state.sr_cards, concept_id, subject.lower(), q['question'][:40])
+                        quality = 5 if current_hint_level < 0 else max(3, 5 - current_hint_level)
+                        SpacedRepetitionEngine.schedule(card, quality)
+                        if st.session_state.win_streak >= 3:
+                            _award_achievement("3-Question Win Streak")
+                    else:
+                        st.error("❌ Not quite. Try another hint instead of guessing again — the goal is to get there yourself.")
+                        st.session_state.wrong_streak += 1
+                        st.session_state.win_streak = 0
+                        card = SpacedRepetitionEngine.get_or_create(st.session_state.sr_cards, concept_id, subject.lower(), q['question'][:40])
+                        SpacedRepetitionEngine.schedule(card, 1)
+
+                    shift = DynamicDifficultyBalancer.next_difficulty(st.session_state.current_difficulty, st.session_state.wrong_streak, st.session_state.win_streak)
+                    if shift['changed']:
+                        st.session_state.current_difficulty = shift['difficulty']
+                        st.info(f"⚖️ Difficulty adjusted to **{shift['difficulty']}**.")
+                    if shift['break_into_substeps']:
+                        st.warning("🧩 That's two misses in a row — try the **Step-by-Step Check** tab to work this one in smaller pieces.")
+
+    # ---- Tab 2: OCR ingestion ----
+    with tabs[1]:
+        st.caption("Upload a photo of handwritten math, a diagram, or a textbook page.")
+        if not MultimodalOCREngine.is_available():
+            st.warning("⚠️ OCR isn't active on this server right now: it needs the `pytesseract` package and the Tesseract binary installed, and I can't confirm those are present in your deployment. You can still upload an image and type the text manually below.")
+        img_file = st.file_uploader("Upload image (png/jpg):", type=['png', 'jpg', 'jpeg'], key='ocr_upload')
+        if img_file is not None:
+            st.image(img_file, caption="Uploaded work", use_container_width=True)
+            result = MultimodalOCREngine.extract_text(img_file.getvalue())
+            if result['success']:
+                st.success("Text extracted:")
+                extracted = st.text_area("Extracted text (edit if OCR made mistakes):", value=result['text'], key='ocr_text')
+            else:
+                st.info(result.get('error', 'OCR unavailable.'))
+                extracted = st.text_area("Type what's in the image instead:", key='ocr_text_manual')
+            if st.button("Save to practice history", key='ocr_save'):
+                st.session_state.ocr_history.append({'timestamp': datetime.now().isoformat(), 'text': extracted, 'subject': subject})
+                st.success("Saved. Nothing here leaves this session — see Privacy & Safety.")
+
+    # ---- Tab 3: Voice-first active recall ----
+    with tabs[2]:
+        st.caption("Explain the concept out loud, then check how much of the key vocabulary you covered.")
+        key_terms_input = st.text_input("Key terms to check for (comma-separated) — set by the lesson normally:", value="numerator, denominator, equivalent" if subject == 'Mathematics' else "concept, example, reason")
+        key_terms = [t.strip() for t in key_terms_input.split(',') if t.strip()]
+
+        audio = None
+        try:
+            audio = st.audio_input("Record your explanation:", key='voice_recall_audio')
+        except Exception:
+            st.caption("Your Streamlit version may not support st.audio_input — type your explanation instead.")
+
+        if audio is not None:
+            stt_result = VoiceActiveRecallEngine.transcribe_audio(audio.getvalue())
+            st.info(stt_result['note'])
+
+        transcript = st.text_area("Type (or paste) what you said:", key='voice_transcript')
+        if st.button("Score my explanation", key='score_explanation'):
+            shield = SocraticGuardrailEngine.content_shield(transcript)
+            if shield['blocked']:
+                st.warning(f"🛡️ {shield['reason']}")
+            else:
+                score = VoiceActiveRecallEngine.score_explanation(transcript, key_terms)
+                st.metric("Concept coverage", f"{score['coverage_pct']}%")
+                if score['covered_terms']:
+                    st.success("Covered: " + ", ".join(score['covered_terms']))
+                if score['missed_terms']:
+                    st.warning("Missing: " + ", ".join(score['missed_terms']))
+                st.session_state.voice_sessions.append({'timestamp': datetime.now().isoformat(), 'subject': subject, **score})
+
+    # ---- Tab 4: Instant step-by-step evaluation ----
+    with tabs[3]:
+        st.caption("Split-screen check: type your steps on the left, compare against the expected approach on the right.")
+        default_expected = "Isolate the variable term\nDivide both sides by the coefficient\nSimplify to find the value\nCheck by substituting back in"
+        sc1, sc2 = st.columns(2)
+        with sc2:
+            expected_text = st.text_area("Expected steps (one per line):", value=default_expected, key='expected_steps')
+        with sc1:
+            student_text = st.text_area("Your steps (one per line):", key='student_steps', height=170)
+
+        if st.button("Evaluate my steps", key='eval_steps'):
+            expected_steps = [s for s in expected_text.split('\n') if s.strip()]
+            student_steps = [s for s in student_text.split('\n') if s.strip()]
+            results = InstantStepEvaluator.evaluate_steps(student_steps, expected_steps)
+            icons = {'correct': '✅', 'partial': '🟡', 'incorrect': '❌', 'empty': '⬜'}
+            for r in results:
+                st.markdown(f"{icons[r['status']]} **Step {r['step_number']}** — expected: _{r['expected']}_")
+                if r['student_input']:
+                    st.caption(f"You wrote: {r['student_input']}")
+
+
+def show_student_knowledge_map():
+    st.header("🧠 Knowledge Map")
+    st.caption("Mastery unlocks the next concept — no skipping ahead of a prerequisite.")
+    _log_daily_activity()
+
+    subject = st.selectbox("Subject:", ['Mathematics', 'English Language', 'Basic Science', 'Geography', 'General Knowledge'], key='km_subject')
+    subject_key = subject.lower()
+    nodes = PrerequisiteKnowledgeGraph.get_graph(subject_key)
+    mastered_list = st.session_state.mastered_concepts.get(subject_key, [])
+    mastered_ids = set(mastered_list)
+    status_map = PrerequisiteKnowledgeGraph.compute_status(nodes, mastered_ids)
+
+    icon = {'locked': '🔒', 'unlocked': '🟡', 'mastered': '🟢'}
+    label = {'locked': 'Locked', 'unlocked': 'Ready to learn', 'mastered': 'Mastered'}
+
+    for node in nodes:
+        st_status = status_map[node.node_id]
+        with st.container():
+            c1, c2, c3 = st.columns([3, 2, 2])
+            with c1:
+                prereq_names = [n.name for n in nodes if n.node_id in node.prerequisites]
+                st.markdown(f"{icon[st_status]} **{node.name}**")
+                if prereq_names:
+                    st.caption("Requires: " + ", ".join(prereq_names))
+            with c2:
+                st.caption(label[st_status])
+            with c3:
+                if st_status == 'unlocked':
+                    if st.button("Mark mastered", key=f"master_{node.node_id}"):
+                        mastered_list.append(node.node_id)
+                        st.session_state.mastered_concepts[subject_key] = mastered_list
+                        card = SpacedRepetitionEngine.get_or_create(st.session_state.sr_cards, node.node_id, subject_key, node.name)
+                        SpacedRepetitionEngine.schedule(card, 4)
+                        if len(mastered_list) == len(nodes):
+                            _award_achievement(f"{subject} Tree Completed")
+                        st.rerun()
+                elif st_status == 'mastered':
+                    st.success("Done")
+                else:
+                    st.caption("—")
+        st.divider()
+
+    next_node = PrerequisiteKnowledgeGraph.next_recommended(nodes, mastered_ids)
+    if next_node:
+        st.info(f"👉 Recommended next: **{next_node.name}**")
+    else:
+        st.success("🎉 All concepts in this subject are mastered!")
+
+    dot_lines = ["digraph G {", "rankdir=LR;", 'node [shape=box, style=filled, fontname="Helvetica"];']
+    color_map = {'locked': '#d1d5db', 'unlocked': '#fde68a', 'mastered': '#86efac'}
+    for node in nodes:
+        safe_name = node.name.replace('"', "'")
+        dot_lines.append(f'"{node.node_id}" [label="{safe_name}", fillcolor="{color_map[status_map[node.node_id]]}"];')
+    for node in nodes:
+        for p in node.prerequisites:
+            dot_lines.append(f'"{p}" -> "{node.node_id}";')
+    dot_lines.append("}")
+    try:
+        st.graphviz_chart("\n".join(dot_lines))
+    except Exception:
+        pass  # badge list above is the guaranteed-to-render view
+
+
+def show_student_review_queue():
+    st.header("🔁 Spaced Repetition Review")
+    st.caption("Cards resurface right before you'd naturally forget them (SM-2 scheduling, the algorithm family behind Anki).")
+    _log_daily_activity()
+
+    due = SpacedRepetitionEngine.due_cards(st.session_state.sr_cards)
+
+    if not due:
+        st.success("Nothing due right now. Master a concept in the Knowledge Map or answer practice questions to add cards.")
+    else:
+        st.info(f"{len(due)} card(s) due today.")
+        card = due[0]
+        st.markdown(f"### {card.concept_name}")
+        st.caption(f"Subject: {card.subject.title()} · Repetitions: {card.repetitions} · Easiness: {card.easiness} · Lapses: {card.lapses}")
+        st.write("How well did you recall this, without looking anything up?")
+        q = st.slider("Recall quality (0 = totally forgot, 5 = instant and easy):", 0, 5, 3, key=f"quality_{card.concept_id}")
+        if st.button("Submit review", key=f"review_{card.concept_id}"):
+            SpacedRepetitionEngine.schedule(card, q)
+            st.session_state.sr_cards[card.concept_id] = card
+            st.success(f"Next review: {card.next_review} (in {card.interval_days} day(s))")
+            if len(st.session_state.sr_cards) >= 5 and all(c.repetitions >= 1 for c in st.session_state.sr_cards.values()):
+                _award_achievement("Review Habit Builder")
+            st.rerun()
+
+    if st.session_state.sr_cards:
+        st.divider()
+        st.subheader("All tracked cards")
+        rows = [{
+            'Concept': c.concept_name, 'Subject': c.subject.title(), 'Next Review': c.next_review,
+            'Interval (days)': c.interval_days, 'Repetitions': c.repetitions, 'Easiness': c.easiness, 'Lapses': c.lapses
+        } for c in st.session_state.sr_cards.values()]
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+
+def show_student_progress():
+    st.header("📊 Progress & Analytics")
+    _log_daily_activity()
+
+    student_engine = StudentOutcomeEngine(country_code)
+
+    weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Current']
+    scores = [45, 52, 58, 63, st.session_state.student_score]
+    df = pd.DataFrame({'Week': weeks, 'Score': scores})
+    st.line_chart(df.set_index('Week'))
+
+    col1, col2 = st.columns(2)
+    with col1:
+        grade = student_engine._calculate_projected_grade({'score': st.session_state.student_score})
+        st.metric("Projected Grade", grade)
+    with col2:
+        if st.session_state.student_score >= 60:
+            st.success("✅ On track for success!")
+        else:
+            st.warning("📚 Keep practicing to improve")
+
+    st.divider()
+    st.subheader("🔍 Latent Knowledge Gap Tracking")
+    st.caption("Combines solve speed, edit/hint attempts, and self-reported confidence — not just right/wrong — to surface hidden weak spots.")
+
+    logs = [AttemptLog(**d) for d in st.session_state.attempt_logs]
+    if not logs:
+        st.info("Answer some practice questions to generate analytics here.")
+    else:
+        flags = LatentKnowledgeGapTracker.analyze(logs)
+        if not flags:
+            st.success("No latent gaps flagged from your recent attempts.")
+        else:
+            for f in flags:
+                with st.expander(f"⚠️ {f['concept_id'].split('::')[-1][:40]} — gap score {f['gap_score']}"):
+                    st.write("Reasons: " + ", ".join(f['reasons']))
+                    m1, m2, m3, m4 = st.columns(4)
+                    m1.metric("Accuracy", f"{f['accuracy_pct']}%")
+                    m2.metric("Avg time", f"{f['avg_time_sec']}s")
+                    m3.metric("Avg edits/hints", f['avg_edits'])
+                    m4.metric("Avg confidence", f"{f['avg_confidence']}/5")
+
+        st.caption(f"Based on {len(logs)} logged attempt(s) this session.")
+
+
+def show_student_achievements():
+    st.header("🏆 Achievements & Streaks")
+    _log_daily_activity()
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Day Streak", f"{st.session_state.streak} days")
+    col2.metric("Streak-Repair Buffers", st.session_state.streak_repair_tokens)
+    col3.metric("Achievements", len(st.session_state.achievements))
+
+    st.caption("A streak-repair buffer auto-covers one missed day so a single skip doesn't wipe out your progress.")
+
+    st.divider()
     if st.session_state.achievements:
-        st.subheader("🏆 Achievements")
         for achievement in st.session_state.achievements:
             st.markdown(f'<span class="achievement-badge">🏆 {achievement}</span>', unsafe_allow_html=True)
+    else:
+        st.info("No achievements yet — answer questions, master concepts, and keep your streak alive to earn some.")
+
+    st.divider()
+    st.subheader("🌳 Mastery Overview")
+    total_mastered = sum(len(v) for v in st.session_state.mastered_concepts.values())
+    st.metric("Concepts mastered across all subjects", total_mastered)
+
+
+def show_student_privacy():
+    st.header("🔒 Privacy & Safety")
+
+    st.markdown("""
+    **How this works in this app, plainly:**
+    - Everything you do here — practice answers, OCR uploads, voice transcripts, notes — lives only in this browser session's memory (`st.session_state`).
+    - Nothing is written to a database or file by this app, and nothing here is used to train any AI model.
+    - This page's guarantee covers the application code only — I can't verify server- or host-level logging on whatever infrastructure this is deployed on. Check your deployment's own data-retention policy for that layer.
+    """)
+
+    st.session_state.privacy_consent = st.toggle("I understand my session data is temporary and stored only for this session.", value=st.session_state.privacy_consent)
+
+    st.divider()
+    st.subheader("🛡️ Contextual Content Shield")
+    st.caption("Any free-text box in Practice is checked against a simple keyword filter that blocks requests to skip learning (e.g. 'just give me the answer', 'do my homework for me'). It's heuristic, not perfect — it can be worded around, so it's a guardrail, not a guarantee.")
+
+    st.divider()
+    st.subheader("🧹 Erase my data")
+    st.caption("Clears practice history, spaced-repetition cards, mastery progress, OCR/voice history, and achievements from this session.")
+    if st.button("🗑️ Purge my session data", type="secondary"):
+        PrivacyControlEngine.purge(st.session_state)
+        st.success("Session data cleared.")
+        st.rerun()
 
 
 # ==================== MAIN NAVIGATION ====================
@@ -5402,11 +6218,17 @@ def main():
     elif choice == '🎓 Dashboard':
         show_student_dashboard()
     elif choice == '📝 Practice':
-        show_student_dashboard()
+        show_student_practice()
+    elif choice == '🧠 Knowledge Map':
+        show_student_knowledge_map()
+    elif choice == '🔁 Review Queue':
+        show_student_review_queue()
     elif choice == '📊 Progress':
-        show_student_dashboard()
+        show_student_progress()
     elif choice == '🏆 Achievements':
-        show_student_dashboard()
+        show_student_achievements()
+    elif choice == '🔒 Privacy & Safety':
+        show_student_privacy()
     elif choice == '👨‍🏫 Dashboard':
         show_teacher_dashboard()
     elif choice == '📋 Lesson Builder':
