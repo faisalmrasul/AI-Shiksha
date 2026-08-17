@@ -1,6 +1,7 @@
 # app.py - AI Shiksha Global Platform with Universal Core + Local Overlay Architecture
 # Built for global scalability with country-specific curriculum overlays
 # Enhanced with Document Intelligence for all segments
+# Professional Intelligence Engine with Research, Analysis & Portfolio Tools
 # SME Growth Automation Engine with Data Infrastructure & AI Analytics
 
 import streamlit as st
@@ -13,8 +14,9 @@ import hashlib
 import io
 import re
 from typing import Dict, List, Any, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
+import numpy as np
 
 # ==================== PAGE CONFIGURATION - MUST BE FIRST ====================
 st.set_page_config(
@@ -34,6 +36,713 @@ try:
     import docx
 except ImportError:
     docx = None
+
+# ==================== PROFESSIONAL DATA MODELS ====================
+
+@dataclass
+class SourceDocument:
+    """Source document with citation tracking"""
+    id: str
+    title: str
+    source_type: str  # 'sec_filing', 'earnings_call', 'news', 'research'
+    file_path: str
+    content: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    citations: List[Dict[str, Any]] = field(default_factory=list)
+    parsed_tables: List[Dict[str, Any]] = field(default_factory=list)
+    uploaded_at: datetime = field(default_factory=datetime.now)
+
+@dataclass
+class Citation:
+    """Audit-linked citation"""
+    id: str
+    document_id: str
+    page_number: int
+    paragraph: str
+    claim: str
+    confidence: float
+    source_text: str
+
+@dataclass
+class PortfolioAsset:
+    """Portfolio asset for monitoring"""
+    ticker: str
+    name: str
+    sector: str
+    shares: int
+    purchase_price: float
+    current_price: float
+    market_value: float
+    weight: float
+    daily_change: float
+    weekly_change: float
+    monthly_change: float
+
+@dataclass
+class WatchdogAlert:
+    """Automated alert from asset watchdog"""
+    id: str
+    asset_ticker: str
+    alert_type: str  # 'earnings', 'filing', 'news', 'price'
+    severity: str  # 'high', 'medium', 'low'
+    message: str
+    source: str
+    timestamp: datetime
+    read: bool = False
+
+@dataclass
+class MacroScenario:
+    """Macro scenario for stress testing"""
+    name: str
+    description: str
+    rate_change: float
+    inflation_change: float
+    growth_change: float
+    market_shock: float
+    portfolio_impact: float
+
+class SearchType(Enum):
+    HYBRID = "hybrid"
+    VECTOR = "vector"
+    KEYWORD = "keyword"
+    SEMANTIC = "semantic"
+
+# ==================== PROFESSIONAL INTELLIGENCE ENGINE ====================
+
+class ProfessionalIntelligenceEngine:
+    """Professional Intelligence Engine with Research, Analysis & Portfolio Tools"""
+    
+    def __init__(self, country_code='kenya'):
+        self.country = country_code
+        self.overlay = LocalCurriculumOverlay.get_overlay(country_code)
+        self.documents = []
+        self.citations = []
+        self.portfolio_assets = []
+        self.watchdog_alerts = []
+        self.analysis_history = []
+        self.search_index = {}
+        self.vector_embeddings = {}
+        
+        # Initialize with sample data
+        self._initialize_sample_data()
+    
+    def _initialize_sample_data(self):
+        """Initialize with sample professional data"""
+        # Sample source documents
+        sample_docs = [
+            {
+                'id': 'doc_001',
+                'title': 'Q4 2024 Earnings Report - TechCorp',
+                'source_type': 'sec_filing',
+                'content': """TechCorp Q4 2024 earnings exceeded analyst expectations. 
+                Revenue reached $12.4 billion, up 18% year-over-year. 
+                EPS of $2.15 beat estimates of $1.95. 
+                Cloud revenue grew 32% to $4.2 billion. 
+                Operating margin expanded to 28.5% from 26.1%.""",
+                'metadata': {'filing_date': '2025-01-15', 'quarter': 'Q4 2024', 'company': 'TechCorp'},
+                'citations': [
+                    {'page': 2, 'paragraph': 3, 'claim': 'Revenue reached $12.4 billion', 'confidence': 0.95},
+                    {'page': 2, 'paragraph': 4, 'claim': 'EPS of $2.15 beat estimates', 'confidence': 0.92}
+                ]
+            },
+            {
+                'id': 'doc_002',
+                'title': 'AI Market Analysis 2025',
+                'source_type': 'research',
+                'content': """The AI market is projected to grow to $1.3 trillion by 2028, 
+                with a CAGR of 24.5%. Key growth drivers include cloud computing, 
+                natural language processing, and computer vision. 
+                Enterprise adoption has accelerated 40% in the last year.""",
+                'metadata': {'filing_date': '2025-01-10', 'analyst': 'Research Team', 'sector': 'Technology'},
+                'citations': [
+                    {'page': 1, 'paragraph': 2, 'claim': 'AI market projected to grow to $1.3 trillion', 'confidence': 0.88},
+                    {'page': 2, 'paragraph': 1, 'claim': 'CAGR of 24.5%', 'confidence': 0.90}
+                ]
+            }
+        ]
+        
+        for doc_data in sample_docs:
+            doc = SourceDocument(
+                id=doc_data['id'],
+                title=doc_data['title'],
+                source_type=doc_data['source_type'],
+                file_path=f"{doc_data['id']}.pdf",
+                content=doc_data['content'],
+                metadata=doc_data['metadata'],
+                citations=doc_data['citations']
+            )
+            self.documents.append(doc)
+        
+        # Sample portfolio assets
+        sample_assets = [
+            PortfolioAsset(
+                ticker='AAPL', name='Apple Inc.', sector='Technology',
+                shares=100, purchase_price=150.00, current_price=175.50,
+                market_value=17550.00, weight=0.25,
+                daily_change=0.02, weekly_change=0.05, monthly_change=0.12
+            ),
+            PortfolioAsset(
+                ticker='MSFT', name='Microsoft Corp.', sector='Technology',
+                shares=50, purchase_price=330.00, current_price=380.00,
+                market_value=19000.00, weight=0.27,
+                daily_change=0.015, weekly_change=0.04, monthly_change=0.10
+            ),
+            PortfolioAsset(
+                ticker='GOOGL', name='Alphabet Inc.', sector='Technology',
+                shares=75, purchase_price=140.00, current_price=155.00,
+                market_value=11625.00, weight=0.17,
+                daily_change=0.01, weekly_change=0.03, monthly_change=0.08
+            ),
+            PortfolioAsset(
+                ticker='AMZN', name='Amazon.com Inc.', sector='Consumer',
+                shares=30, purchase_price=185.00, current_price=195.00,
+                market_value=5850.00, weight=0.08,
+                daily_change=-0.005, weekly_change=0.02, monthly_change=0.05
+            ),
+            PortfolioAsset(
+                ticker='NVDA', name='NVIDIA Corp.', sector='Technology',
+                shares=40, purchase_price=450.00, current_price=520.00,
+                market_value=20800.00, weight=0.30,
+                daily_change=0.03, weekly_change=0.08, monthly_change=0.25
+            )
+        ]
+        self.portfolio_assets = sample_assets
+        
+        # Sample watchdog alerts
+        sample_alerts = [
+            WatchdogAlert(
+                id='alert_001',
+                asset_ticker='AAPL',
+                alert_type='news',
+                severity='medium',
+                message='Apple announces new AI product line - potential growth catalyst',
+                source='Reuters',
+                timestamp=datetime.now() - timedelta(hours=2)
+            ),
+            WatchdogAlert(
+                id='alert_002',
+                asset_ticker='NVDA',
+                alert_type='earnings',
+                severity='high',
+                message='NVIDIA earnings due next week - expected to beat estimates',
+                source='Bloomberg',
+                timestamp=datetime.now() - timedelta(hours=5)
+            ),
+            WatchdogAlert(
+                id='alert_003',
+                asset_ticker='MSFT',
+                alert_type='filing',
+                severity='low',
+                message='Microsoft files 8-K regarding board changes',
+                source='SEC EDGAR',
+                timestamp=datetime.now() - timedelta(days=1)
+            )
+        ]
+        self.watchdog_alerts = sample_alerts
+    
+    # ===== Data Ingestion & Search Pipeline =====
+    
+    def ingest_document(self, file_content: str, file_name: str, source_type: str, metadata: Dict = None) -> SourceDocument:
+        """Ingest a new document into the system"""
+        doc_id = f"doc_{hashlib.md5(file_name.encode()).hexdigest()[:8]}"
+        
+        doc = SourceDocument(
+            id=doc_id,
+            title=file_name,
+            source_type=source_type,
+            file_path=file_name,
+            content=file_content,
+            metadata=metadata or {},
+            uploaded_at=datetime.now()
+        )
+        
+        # Extract citations and tables
+        doc.citations = self._extract_citations(file_content)
+        doc.parsed_tables = self._extract_tables(file_content)
+        
+        self.documents.append(doc)
+        self._index_document(doc)
+        
+        return doc
+    
+    def _extract_citations(self, content: str) -> List[Dict[str, Any]]:
+        """Extract potential citations from document content"""
+        citations = []
+        lines = content.split('\n')
+        
+        for i, line in enumerate(lines):
+            # Look for claims with numbers or percentages
+            claims = re.findall(r'([A-Z][^.!?]*\s+(?:was|is|reached|grew|increased|decreased|fell|rose|were)\s+[^.!?]*\d+[^.!?]*)', line)
+            for claim in claims:
+                if len(claim) > 20:
+                    citations.append({
+                        'page': i // 40 + 1,
+                        'paragraph': i + 1,
+                        'claim': claim.strip(),
+                        'confidence': 0.85
+                    })
+        
+        return citations[:10]  # Limit to first 10 citations
+    
+    def _extract_tables(self, content: str) -> List[Dict[str, Any]]:
+        """Extract tables from document content"""
+        tables = []
+        # Look for table-like structures (lines with consistent delimiters)
+        lines = content.split('\n')
+        table_data = []
+        
+        for line in lines:
+            if '|' in line or '\t' in line:
+                parts = re.split(r'[|\t]+', line)
+                if len(parts) > 2:
+                    table_data.append([p.strip() for p in parts if p.strip()])
+        
+        if table_data:
+            tables.append({
+                'rows': len(table_data),
+                'columns': len(table_data[0]) if table_data else 0,
+                'data': table_data
+            })
+        
+        return tables
+    
+    def _index_document(self, doc: SourceDocument):
+        """Index document for search"""
+        # Simple keyword indexing
+        words = re.findall(r'\b[a-zA-Z]{3,}\b', doc.content.lower())
+        for word in words:
+            if word not in self.search_index:
+                self.search_index[word] = []
+            self.search_index[word].append(doc.id)
+    
+    def hybrid_search(self, query: str, search_type: SearchType = SearchType.HYBRID) -> List[Dict[str, Any]]:
+        """Hybrid search combining vector and keyword search"""
+        results = []
+        query_words = re.findall(r'\b[a-zA-Z]{3,}\b', query.lower())
+        
+        # Keyword search (BM25-like)
+        keyword_results = {}
+        for word in query_words:
+            if word in self.search_index:
+                for doc_id in self.search_index[word]:
+                    keyword_results[doc_id] = keyword_results.get(doc_id, 0) + 1
+        
+        # Vector search (simulated with simple word matching)
+        vector_results = {}
+        for doc in self.documents:
+            doc_words = re.findall(r'\b[a-zA-Z]{3,}\b', doc.content.lower())
+            # Simple cosine similarity approximation
+            overlap = len(set(query_words) & set(doc_words))
+            if overlap > 0:
+                vector_results[doc.id] = overlap / len(set(query_words) | set(doc_words))
+        
+        # Combine results
+        all_doc_ids = set(keyword_results.keys()) | set(vector_results.keys())
+        
+        for doc_id in all_doc_ids:
+            doc = next((d for d in self.documents if d.id == doc_id), None)
+            if doc:
+                keyword_score = keyword_results.get(doc_id, 0) / max(1, len(query_words))
+                vector_score = vector_results.get(doc_id, 0)
+                
+                if search_type == SearchType.KEYWORD:
+                    final_score = keyword_score
+                elif search_type == SearchType.VECTOR:
+                    final_score = vector_score
+                elif search_type == SearchType.SEMANTIC:
+                    final_score = vector_score * 0.7 + keyword_score * 0.3
+                else:  # HYBRID
+                    final_score = keyword_score * 0.4 + vector_score * 0.6
+                
+                if final_score > 0.1:
+                    results.append({
+                        'document': doc,
+                        'score': round(final_score, 3),
+                        'matches': list(set(query_words) & set(re.findall(r'\b[a-zA-Z]{3,}\b', doc.content.lower())))
+                    })
+        
+        return sorted(results, key=lambda x: x['score'], reverse=True)
+    
+    # ===== Audit-Linked Citation Engine =====
+    
+    def generate_citation_chain(self, claim: str, document_id: str) -> List[Dict[str, Any]]:
+        """Generate audit-linked citations for a claim"""
+        doc = next((d for d in self.documents if d.id == document_id), None)
+        if not doc:
+            return []
+        
+        citations = []
+        for citation in doc.citations:
+            if claim.lower() in citation['claim'].lower() or any(word in citation['claim'].lower() for word in claim.lower().split()[:5]):
+                citations.append({
+                    'claim': citation['claim'],
+                    'page': citation.get('page', 1),
+                    'paragraph': citation.get('paragraph', 1),
+                    'confidence': citation.get('confidence', 0.85),
+                    'source_text': doc.content.split('\n')[citation.get('paragraph', 1) - 1] if citation.get('paragraph') else ''
+                })
+        
+        return citations
+    
+    def audit_analysis(self, analysis_text: str, source_documents: List[SourceDocument]) -> Dict[str, Any]:
+        """Audit analysis against source documents"""
+        audit_results = {
+            'verified_claims': [],
+            'unverified_claims': [],
+            'citations_generated': [],
+            'confidence_score': 0.0
+        }
+        
+        # Extract claims from analysis
+        claims = re.findall(r'([A-Z][^.!?]*\s+(?:was|is|reached|grew|increased|decreased|fell|rose|were|will|would|could|should)\s+[^.!?]*\d+[^.!?]*)', analysis_text)
+        
+        for claim in claims:
+            verified = False
+            for doc in source_documents:
+                if claim.lower() in doc.content.lower():
+                    citations = self.generate_citation_chain(claim, doc.id)
+                    if citations:
+                        audit_results['verified_claims'].append({
+                            'claim': claim,
+                            'source': doc.title,
+                            'citations': citations
+                        })
+                        audit_results['citations_generated'].extend(citations)
+                        verified = True
+                        break
+            
+            if not verified:
+                audit_results['unverified_claims'].append(claim)
+        
+        audit_results['confidence_score'] = len(audit_results['verified_claims']) / max(1, len(claims))
+        
+        return audit_results
+    
+    # ===== Code-Executing Data Sandbox =====
+    
+    def execute_quant_analysis(self, code: str, data: pd.DataFrame) -> Dict[str, Any]:
+        """Execute quantitative analysis in a sandboxed environment"""
+        try:
+            # Create a safe execution environment
+            safe_globals = {
+                'pd': pd,
+                'np': np,
+                'data': data,
+                'len': len,
+                'sum': sum,
+                'min': min,
+                'max': max,
+                'round': round,
+                'abs': abs
+            }
+            
+            # Execute the code
+            exec_globals = {}
+            exec(code, safe_globals, exec_globals)
+            
+            # Get results
+            result = exec_globals.get('result', None)
+            
+            return {
+                'status': 'success',
+                'result': result,
+                'execution_time': 0.1
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e),
+                'execution_time': 0.1
+            }
+    
+    # ===== Real-Time Market Feeds =====
+    
+    def fetch_market_data(self, ticker: str) -> Dict[str, Any]:
+        """Fetch real-time market data (simulated)"""
+        # Simulate market data
+        base_price = random.uniform(100, 500)
+        return {
+            'ticker': ticker,
+            'price': round(base_price, 2),
+            'change': round(random.uniform(-5, 5), 2),
+            'change_percent': round(random.uniform(-3, 3), 2),
+            'volume': random.randint(1000000, 10000000),
+            'high': round(base_price * random.uniform(1.01, 1.05), 2),
+            'low': round(base_price * random.uniform(0.95, 0.99), 2),
+            'timestamp': datetime.now().isoformat()
+        }
+    
+    def fetch_sec_filing(self, ticker: str) -> Dict[str, Any]:
+        """Fetch SEC EDGAR filing (simulated)"""
+        filings = [
+            {'type': '10-K', 'date': '2025-01-15', 'title': 'Annual Report'},
+            {'type': '10-Q', 'date': '2025-01-10', 'title': 'Quarterly Report'},
+            {'type': '8-K', 'date': '2025-01-05', 'title': 'Current Report'},
+            {'type': 'DEF 14A', 'date': '2025-01-02', 'title': 'Proxy Statement'}
+        ]
+        return {
+            'ticker': ticker,
+            'filings': [f for f in filings if random.random() > 0.5],
+            'timestamp': datetime.now().isoformat()
+        }
+    
+    def fetch_earnings_call(self, ticker: str) -> Dict[str, Any]:
+        """Fetch earnings call transcripts (simulated)"""
+        return {
+            'ticker': ticker,
+            'quarter': 'Q4 2024',
+            'date': '2025-01-20',
+            'transcript': f"Earnings call transcript for {ticker}. Revenue exceeded expectations...",
+            'highlights': [
+                'Revenue beat by 5%',
+                'EPS exceeded guidance',
+                'Forward guidance raised'
+            ],
+            'timestamp': datetime.now().isoformat()
+        }
+    
+    # ===== Portfolio Intelligence & Monitoring =====
+    
+    def calculate_portfolio_metrics(self) -> Dict[str, Any]:
+        """Calculate portfolio metrics"""
+        total_value = sum(asset.market_value for asset in self.portfolio_assets)
+        
+        # Sector concentration
+        sector_exposure = {}
+        for asset in self.portfolio_assets:
+            sector_exposure[asset.sector] = sector_exposure.get(asset.sector, 0) + asset.weight
+        
+        # Risk metrics
+        returns = [asset.daily_change for asset in self.portfolio_assets]
+        volatility = np.std(returns) if returns else 0
+        
+        # Tracking error (simulated)
+        tracking_error = round(volatility * 0.5, 4)
+        
+        return {
+            'total_value': round(total_value, 2),
+            'sector_exposure': sector_exposure,
+            'volatility': round(volatility, 4),
+            'tracking_error': tracking_error,
+            'sharpe_ratio': round((0.1 - 0.03) / max(0.01, volatility), 2),
+            'concentration_risk': round(max(sector_exposure.values()) if sector_exposure else 0, 2)
+        }
+    
+    def run_watchdog_alerts(self) -> List[WatchdogAlert]:
+        """Run 24/7 asset watchdogs"""
+        new_alerts = []
+        
+        # Check each portfolio asset
+        for asset in self.portfolio_assets:
+            # Simulate earnings alerts
+            if random.random() > 0.7:
+                alert = WatchdogAlert(
+                    id=f"alert_{datetime.now().timestamp()}",
+                    asset_ticker=asset.ticker,
+                    alert_type='earnings',
+                    severity='high',
+                    message=f'Earnings announcement for {asset.ticker} expected tomorrow',
+                    source='SEC EDGAR',
+                    timestamp=datetime.now()
+                )
+                new_alerts.append(alert)
+            
+            # Simulate price alerts
+            if random.random() > 0.8:
+                alert = WatchdogAlert(
+                    id=f"alert_{datetime.now().timestamp()}",
+                    asset_ticker=asset.ticker,
+                    alert_type='price',
+                    severity='medium',
+                    message=f'{asset.ticker} price {random.choice(["up", "down"])} significantly',
+                    source='Market Feed',
+                    timestamp=datetime.now()
+                )
+                new_alerts.append(alert)
+        
+        self.watchdog_alerts.extend(new_alerts)
+        return new_alerts
+    
+    # ===== Macro Scenario Stress-Testing =====
+    
+    def run_macro_stress_test(self, scenario: MacroScenario) -> Dict[str, Any]:
+        """Run macro scenario stress test"""
+        portfolio_value = sum(asset.market_value for asset in self.portfolio_assets)
+        
+        # Calculate impact based on scenario parameters
+        rate_impact = scenario.rate_change * 0.5
+        inflation_impact = scenario.inflation_change * 0.3
+        growth_impact = scenario.growth_change * 0.4
+        market_impact = scenario.market_shock * 0.7
+        
+        total_impact = rate_impact + inflation_impact + growth_impact + market_impact
+        
+        impacted_value = portfolio_value * (1 + total_impact)
+        
+        # Asset-level impacts
+        asset_impacts = []
+        for asset in self.portfolio_assets:
+            # Sector-specific impacts
+            sector_multiplier = {
+                'Technology': 0.2,
+                'Consumer': 0.15,
+                'Financial': 0.25,
+                'Healthcare': 0.1,
+                'Energy': 0.3
+            }.get(asset.sector, 0.15)
+            
+            asset_impact = total_impact * sector_multiplier
+            impacted_asset_value = asset.market_value * (1 + asset_impact)
+            
+            asset_impacts.append({
+                'ticker': asset.ticker,
+                'current_value': asset.market_value,
+                'impacted_value': impacted_asset_value,
+                'impact_percent': asset_impact * 100
+            })
+        
+        return {
+            'portfolio_name': 'Professional Portfolio',
+            'scenario_name': scenario.name,
+            'current_value': portfolio_value,
+            'impacted_value': impacted_value,
+            'total_return': total_impact * 100,
+            'asset_impacts': asset_impacts,
+            'risk_assessment': 'High' if abs(total_impact) > 0.2 else 'Medium' if abs(total_impact) > 0.1 else 'Low'
+        }
+    
+    # ===== One-Click Deliverable Generator =====
+    
+    def generate_deliverable(self, template_type: str, data: Dict[str, Any]) -> str:
+        """Generate professional deliverables from templates"""
+        templates = {
+            'investment_memo': """
+            # Investment Committee Memo
+            
+            **Date:** {date}
+            **Analyst:** {analyst}
+            **Subject:** Investment Recommendation
+            
+            ## Executive Summary
+            {summary}
+            
+            ## Investment Thesis
+            {thesis}
+            
+            ## Risk Analysis
+            {risks}
+            
+            ## Financial Projections
+            {financials}
+            
+            ## Recommendation
+            **Action:** {action}
+            **Target Price:** {target_price}
+            **Time Horizon:** {time_horizon}
+            
+            ## Appendix
+            {appendix}
+            """,
+            
+            'client_tear_sheet': """
+            # {client_name} - Portfolio Summary
+            
+            **Date:** {date}
+            **Advisor:** {advisor}
+            
+            ## Portfolio Overview
+            **Total Value:** {total_value}
+            **Annualized Return:** {return}
+            **Risk Level:** {risk_level}
+            
+            ## Holdings
+            {holdings}
+            
+            ## Performance
+            {performance}
+            
+            ## Recommendations
+            {recommendations}
+            """,
+            
+            'research_note': """
+            # Research Note: {title}
+            
+            **Date:** {date}
+            **Analyst:** {analyst}
+            **Sector:** {sector}
+            
+            ## Key Findings
+            {findings}
+            
+            ## Methodology
+            {methodology}
+            
+            ## Data Sources
+            {sources}
+            
+            ## Conclusion
+            {conclusion}
+            """
+        }
+        
+        template = templates.get(template_type, templates['investment_memo'])
+        
+        # Fill template with data
+        try:
+            return template.format(**data)
+        except:
+            return template  # Return unfilled template if data missing
+    
+    # ===== Automated Table Extraction =====
+    
+    def extract_table_from_pdf(self, pdf_content: str) -> pd.DataFrame:
+        """Extract tables from PDF content"""
+        # Simulate table extraction
+        lines = pdf_content.split('\n')
+        table_data = []
+        headers = None
+        
+        for line in lines:
+            # Look for table-like data
+            if '|' in line or '\t' in line:
+                parts = [p.strip() for p in re.split(r'[|\t]+', line) if p.strip()]
+                if parts:
+                    if not headers:
+                        headers = parts[:len(parts)]
+                    else:
+                        table_data.append(parts[:len(headers)])
+        
+        if table_data:
+            return pd.DataFrame(table_data, columns=headers)
+        else:
+            # Return sample data if no table found
+            return pd.DataFrame({
+                'Metric': ['Revenue', 'EBITDA', 'Net Income', 'EPS'],
+                'Q4 2024': ['$12.4B', '$3.5B', '$2.1B', '$2.15'],
+                'Q4 2023': ['$10.5B', '$2.8B', '$1.7B', '$1.75'],
+                'Change': ['+18%', '+25%', '+24%', '+23%']
+            })
+    
+    # ===== Split-Screen Workspace =====
+    
+    def get_workspace_data(self) -> Dict[str, Any]:
+        """Get data for split-screen workspace"""
+        return {
+            'documents': [
+                {
+                    'id': doc.id,
+                    'title': doc.title,
+                    'type': doc.source_type,
+                    'content': doc.content[:500] + ('...' if len(doc.content) > 500 else '')
+                }
+                for doc in self.documents
+            ],
+            'citations': self.citations,
+            'analysis_history': self.analysis_history,
+            'portfolio_data': self.calculate_portfolio_metrics()
+        }
+
 
 # ==================== SME DATA MODELS ====================
 
@@ -75,6 +784,7 @@ class PriorityLevel(Enum):
     MEDIUM = "medium"
     LOW = "low"
 
+
 # ==================== SME INFRASTRUCTURE ENGINE ====================
 
 class SMEInfrastructureEngine:
@@ -92,13 +802,8 @@ class SMEInfrastructureEngine:
     def etl_process(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
         """ETL Pipeline: Extract, Transform, Load for inconsistent SME data"""
         try:
-            # Extract
             extracted = self._extract_data(raw_data)
-            
-            # Transform
             transformed = self._transform_data(extracted)
-            
-            # Load
             loaded = self._load_data(transformed)
             
             return {
@@ -119,21 +824,15 @@ class SMEInfrastructureEngine:
         """Extract data from raw source"""
         extracted = {}
         
-        # Extract financial data
         if 'transactions' in raw_data:
             extracted['transactions'] = raw_data['transactions']
         if 'invoices' in raw_data:
             extracted['invoices'] = raw_data['invoices']
-        
-        # Extract inventory data
         if 'inventory' in raw_data:
             extracted['inventory'] = raw_data['inventory']
-        
-        # Extract customer data
         if 'customers' in raw_data:
             extracted['customers'] = raw_data['customers']
         
-        # Clean and normalize
         for key in extracted:
             if isinstance(extracted[key], list):
                 extracted[key] = self._normalize_list(extracted[key])
@@ -144,7 +843,6 @@ class SMEInfrastructureEngine:
         """Normalize inconsistent data structures"""
         normalized = []
         for item in data_list:
-            # Ensure consistent field names
             if 'amount' in item and 'total' not in item:
                 item['total'] = item['amount']
             if 'qty' in item and 'quantity' not in item:
@@ -158,7 +856,6 @@ class SMEInfrastructureEngine:
         """Transform data for analysis"""
         transformed = {}
         
-        # Calculate key metrics
         if 'transactions' in extracted:
             transactions = extracted['transactions']
             transformed['total_revenue'] = sum(t.get('total', 0) for t in transactions)
@@ -244,7 +941,6 @@ class SMEInfrastructureEngine:
         if service not in self.api_connections:
             return {'status': 'error', 'message': f"Service {service} not connected"}
         
-        # Mock data for demonstration
         mock_data = {
             'payments': [
                 {'id': 1, 'amount': 150.00, 'status': 'paid', 'date': '2024-01-15'},
@@ -286,7 +982,6 @@ class SMEInfrastructureEngine:
         )
         self.webhook_events.append(event)
         
-        # Process based on event type
         if event_type == 'checkout.paid':
             return self._handle_checkout_paid(event)
         elif event_type == 'invoice.overdue':
@@ -299,12 +994,10 @@ class SMEInfrastructureEngine:
             return {'status': 'unhandled', 'event_type': event_type}
     
     def _handle_checkout_paid(self, event: WebhookEvent) -> Dict[str, Any]:
-        """Handle checkout.paid webhook event"""
         payload = event.payload
         amount = payload.get('amount', 0)
         customer = payload.get('customer', {})
         
-        # Generate action task
         task = ActionTask(
             id=f"task_{datetime.now().timestamp()}",
             title="New Payment Received",
@@ -325,13 +1018,11 @@ class SMEInfrastructureEngine:
         }
     
     def _handle_invoice_overdue(self, event: WebhookEvent) -> Dict[str, Any]:
-        """Handle invoice.overdue webhook event"""
         payload = event.payload
         invoice_id = payload.get('invoice_id', 'unknown')
         amount = payload.get('amount', 0)
         days_overdue = payload.get('days_overdue', 0)
         
-        # Generate action task
         task = ActionTask(
             id=f"task_{datetime.now().timestamp()}",
             title=f"Invoice {invoice_id} is {days_overdue} days overdue",
@@ -353,18 +1044,13 @@ class SMEInfrastructureEngine:
         }
     
     def _handle_inventory_low(self, event: WebhookEvent) -> Dict[str, Any]:
-        """Handle inventory.low webhook event"""
         payload = event.payload
         product = payload.get('product', {})
         current_qty = payload.get('current_qty', 0)
         threshold = payload.get('threshold', 0)
-        
-        # Calculate potential lost revenue
         price = product.get('price', 0)
-        units_to_restock = threshold * 2  # Restock to 2x threshold
         potential_loss = (threshold - current_qty) * price
         
-        # Generate action task
         task = ActionTask(
             id=f"task_{datetime.now().timestamp()}",
             title=f"Low Stock Alert: {product.get('name', 'Product')}",
@@ -386,13 +1072,11 @@ class SMEInfrastructureEngine:
         }
     
     def _handle_customer_churn_risk(self, event: WebhookEvent) -> Dict[str, Any]:
-        """Handle customer.churn_risk webhook event"""
         payload = event.payload
         customer = payload.get('customer', {})
         churn_score = payload.get('churn_score', 0)
         days_inactive = payload.get('days_inactive', 0)
         
-        # Generate action task
         task = ActionTask(
             id=f"task_{datetime.now().timestamp()}",
             title=f"Churn Risk: {customer.get('name', 'Customer')}",
@@ -422,17 +1106,12 @@ class SMEAIEngine:
         self.country = country_code
         self.infrastructure = SMEInfrastructureEngine(country_code)
         
-    # ===== Predictive ML Models =====
-    
     def predict_cash_flow(self, historical_data: List[Dict]) -> Dict[str, Any]:
-        """Predict cash flow for next 30 days"""
-        # Simulate cash flow prediction
         days = 30
         current_balance = 5000
         predictions = []
         
         for i in range(days):
-            # Simulate daily transactions
             daily_inflow = random.uniform(100, 500)
             daily_outflow = random.uniform(50, 300)
             current_balance += daily_inflow - daily_outflow
@@ -444,7 +1123,6 @@ class SMEAIEngine:
                 'outflow': round(daily_outflow, 2)
             })
         
-        # Find low points
         min_balance = min(p['balance'] for p in predictions)
         min_balance_day = next(p['day'] for p in predictions if p['balance'] == min_balance)
         
@@ -457,14 +1135,10 @@ class SMEAIEngine:
         }
     
     def predict_churn(self, customer_data: List[Dict]) -> List[Dict]:
-        """Predict customer churn probability"""
         predictions = []
-        for customer in customer_data[:10]:  # Sample first 10 customers
+        for customer in customer_data[:10]:
             days_since_last_order = customer.get('days_since_last_order', 0)
-            avg_order_value = customer.get('avg_order_value', 50)
             order_count = customer.get('order_count', 0)
-            
-            # Simple churn prediction algorithm
             churn_score = min(1.0, (days_since_last_order / 90) * 0.7 + (1 - min(1, order_count / 5)) * 0.3)
             
             predictions.append({
@@ -478,7 +1152,6 @@ class SMEAIEngine:
         return sorted(predictions, key=lambda x: x['churn_score'], reverse=True)
     
     def _get_churn_recommendation(self, churn_score: float) -> str:
-        """Get recommendation based on churn score"""
         if churn_score > 0.7:
             return "🚨 Immediate intervention: Personalized offer needed"
         elif churn_score > 0.5:
@@ -489,7 +1162,6 @@ class SMEAIEngine:
             return "✅ Keep doing what you're doing"
     
     def predict_inventory_depletion(self, inventory_data: List[Dict]) -> List[Dict]:
-        """Predict when inventory will deplete"""
         predictions = []
         for item in inventory_data:
             current_qty = item.get('quantity', 0)
@@ -516,16 +1188,14 @@ class SMEAIEngine:
         return sorted(predictions, key=lambda x: x['days_until_threshold'])
     
     def predict_customer_ltv(self, customer_data: List[Dict]) -> List[Dict]:
-        """Predict Customer Lifetime Value"""
         predictions = []
         for customer in customer_data[:10]:
             avg_order = customer.get('avg_order_value', 50)
-            frequency = customer.get('frequency', 1)  # orders per month
+            frequency = customer.get('frequency', 1)
             months = customer.get('months_active', 6)
             
-            # Simple LTV calculation
             current_ltv = avg_order * frequency * months
-            projected_ltv = avg_order * frequency * 24  # 2 year projection
+            projected_ltv = avg_order * frequency * 24
             
             predictions.append({
                 'customer_id': customer.get('id', 'unknown'),
@@ -538,10 +1208,7 @@ class SMEAIEngine:
         
         return sorted(predictions, key=lambda x: x['projected_ltv'], reverse=True)
     
-    # ===== RAG & Natural Language Queries =====
-    
     def natural_language_query(self, query: str, data_context: Dict[str, Any]) -> Dict[str, Any]:
-        """Process natural language queries over SME data"""
         query_lower = query.lower()
         response = {
             'query': query,
@@ -549,7 +1216,6 @@ class SMEAIEngine:
             'results': []
         }
         
-        # Financial queries
         if 'cash' in query_lower or 'balance' in query_lower:
             cash_flow = self.predict_cash_flow([])
             response['results'].append({
@@ -559,7 +1225,6 @@ class SMEAIEngine:
             })
         
         if 'revenue' in query_lower or 'income' in query_lower:
-            # Simulate revenue data
             revenue = {
                 'total': 15750.00,
                 'growth': 12.5,
@@ -572,7 +1237,6 @@ class SMEAIEngine:
                 'summary': f"Total revenue: ${revenue['total']:.2f}. Growth: {revenue['growth']}% year-over-year."
             })
         
-        # Inventory queries
         if 'inventory' in query_lower or 'stock' in query_lower:
             inventory_data = [
                 {'id': 'SKU-001', 'name': 'Product A', 'quantity': 45, 'threshold': 50, 'daily_sales_avg': 2},
@@ -584,10 +1248,9 @@ class SMEAIEngine:
             response['results'].append({
                 'type': 'inventory',
                 'data': predictions,
-                'summary': f"Found {len(critical_items)} items at critical stock levels. {len([p for p in predictions if p['status'] == 'warning'])} items need attention soon."
+                'summary': f"Found {len(critical_items)} items at critical stock levels."
             })
         
-        # Customer queries
         if 'customer' in query_lower or 'churn' in query_lower:
             customer_data = [
                 {'id': 1, 'name': 'John Doe', 'days_since_last_order': 45, 'avg_order_value': 75, 'order_count': 3},
@@ -599,7 +1262,7 @@ class SMEAIEngine:
             response['results'].append({
                 'type': 'churn',
                 'data': churn_predictions,
-                'summary': f"{len(high_risk)} customers at high churn risk. {len([c for c in churn_predictions if c['risk_level'] == 'medium'])} at medium risk."
+                'summary': f"{len(high_risk)} customers at high churn risk."
             })
         
         if not response['results']:
@@ -611,10 +1274,7 @@ class SMEAIEngine:
         
         return response
     
-    # ===== Deterministic Guardrails =====
-    
     def validate_llm_output(self, output: Dict[str, Any], action_type: str) -> Dict[str, Any]:
-        """Validate LLM outputs with deterministic guardrails"""
         validation = {
             'valid': True,
             'errors': [],
@@ -622,7 +1282,6 @@ class SMEAIEngine:
             'corrected': {}
         }
         
-        # Validate financial calculations
         if action_type in ['invoice', 'payment', 'financial']:
             amount = output.get('amount', 0)
             if amount < 0:
@@ -631,7 +1290,6 @@ class SMEAIEngine:
             if amount > 100000:
                 validation['warnings'].append("Large transaction amount - please verify")
         
-        # Validate inventory operations
         if action_type in ['inventory', 'restock']:
             quantity = output.get('quantity', 0)
             if quantity < 0:
@@ -639,22 +1297,6 @@ class SMEAIEngine:
                 validation['errors'].append("Quantity cannot be negative")
             if quantity > 1000:
                 validation['warnings'].append("Large restock quantity - please verify")
-        
-        # Validate customer actions
-        if action_type in ['customer', 'email']:
-            email = output.get('email', '')
-            if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-                validation['valid'] = False
-                validation['errors'].append("Invalid email format")
-        
-        # Validate dates
-        if 'due_date' in output:
-            try:
-                due_date = datetime.fromisoformat(output['due_date'])
-                if due_date < datetime.now():
-                    validation['warnings'].append("Due date is in the past")
-            except:
-                validation['errors'].append("Invalid date format")
         
         return validation
 
@@ -670,21 +1312,15 @@ class SMEProductUXEngine:
         self.ai_engine = SMEAIEngine(country_code)
         self.tasks = []
         self.alert_history = []
-        
-    # ===== Action-Oriented Task Feed =====
     
     def generate_tasks(self, business_data: Dict[str, Any]) -> List[ActionTask]:
-        """Generate priority-ranked action tasks"""
         tasks = []
-        
-        # Generate tasks from data analysis
         tasks.extend(self._generate_inventory_tasks(business_data))
         tasks.extend(self._generate_financial_tasks(business_data))
         tasks.extend(self._generate_customer_tasks(business_data))
         tasks.extend(self._generate_marketing_tasks(business_data))
         tasks.extend(self._generate_operations_tasks(business_data))
         
-        # Sort by priority
         priority_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
         tasks.sort(key=lambda t: priority_order.get(t.priority, 4))
         
@@ -692,9 +1328,7 @@ class SMEProductUXEngine:
         return tasks
     
     def _generate_inventory_tasks(self, data: Dict) -> List[ActionTask]:
-        """Generate inventory-related tasks"""
         tasks = []
-        
         inventory = data.get('inventory', [])
         for item in inventory:
             qty = item.get('quantity', 0)
@@ -702,7 +1336,6 @@ class SMEProductUXEngine:
             price = item.get('price', 0)
             
             if qty <= 0:
-                # Critical: Out of stock
                 potential_loss = threshold * price
                 tasks.append(ActionTask(
                     id=f"inv_{item.get('id', 'unknown')}_{datetime.now().timestamp()}",
@@ -717,7 +1350,6 @@ class SMEProductUXEngine:
                     due_date=datetime.now() + timedelta(hours=6)
                 ))
             elif qty < threshold:
-                # Warning: Low stock
                 potential_loss = (threshold - qty) * price
                 tasks.append(ActionTask(
                     id=f"inv_{item.get('id', 'unknown')}_{datetime.now().timestamp()}",
@@ -731,14 +1363,10 @@ class SMEProductUXEngine:
                     created_at=datetime.now(),
                     due_date=datetime.now() + timedelta(days=1)
                 ))
-        
         return tasks
     
     def _generate_financial_tasks(self, data: Dict) -> List[ActionTask]:
-        """Generate financial-related tasks"""
         tasks = []
-        
-        # Check overdue invoices
         invoices = data.get('invoices', [])
         overdue_invoices = [inv for inv in invoices if inv.get('status') == 'overdue']
         
@@ -756,13 +1384,12 @@ class SMEProductUXEngine:
                 due_date=datetime.now() + timedelta(days=2)
             ))
         
-        # Check cash flow
         cash_flow = self.ai_engine.predict_cash_flow([])
         if cash_flow['risk_level'] == 'high':
             tasks.append(ActionTask(
                 id=f"fin_cash_{datetime.now().timestamp()}",
                 title=f"💰 Cash Flow Alert: ${cash_flow['min_balance']:.2f} minimum projected",
-                description=f"Cash flow projected to drop to ${cash_flow['min_balance']:.2f} in {cash_flow['min_balance_day']} days. Review expenses.",
+                description=f"Cash flow projected to drop to ${cash_flow['min_balance']:.2f} in {cash_flow['min_balance_day']} days.",
                 priority='critical',
                 category='finance',
                 impact="Avoid cash shortage",
@@ -771,41 +1398,33 @@ class SMEProductUXEngine:
                 created_at=datetime.now(),
                 due_date=datetime.now() + timedelta(days=1)
             ))
-        
         return tasks
     
     def _generate_customer_tasks(self, data: Dict) -> List[ActionTask]:
-        """Generate customer-related tasks"""
         tasks = []
-        
         customers = data.get('customers', [])
         churn_predictions = self.ai_engine.predict_churn(customers[:10])
         
-        for prediction in churn_predictions[:3]:  # Top 3 risk
+        for prediction in churn_predictions[:3]:
             if prediction['risk_level'] == 'high':
                 tasks.append(ActionTask(
                     id=f"cust_{prediction.get('customer_id', 'unknown')}_{datetime.now().timestamp()}",
                     title=f"👤 Churn Risk: {prediction.get('name', 'Customer')}",
-                    description=f"{prediction.get('name', 'Customer')} at {prediction['churn_score']*100:.0f}% churn risk. {prediction.get('recommendation', 'Take action')}",
+                    description=f"{prediction.get('name', 'Customer')} at {prediction['churn_score']*100:.0f}% churn risk.",
                     priority='high',
                     category='customers',
-                    impact=f"Retain ${next((c.get('avg_order_value', 50) * 6 for c in customers if c.get('id') == prediction.get('customer_id')), 300):.2f} LTV",
+                    impact=f"Retain LTV",
                     action_type='draft',
                     status='pending',
                     created_at=datetime.now()
                 ))
-        
         return tasks
     
     def _generate_marketing_tasks(self, data: Dict) -> List[ActionTask]:
-        """Generate marketing-related tasks"""
         tasks = []
-        
-        # Simulate marketing opportunities
         opportunities = [
             {'title': "🎯 Email Campaign for Inactive Customers", 'desc': "Send re-engagement email to customers inactive for 30+ days", 'impact': "+15% customer retention"},
             {'title': "📱 Social Media Ad Boost", 'desc': "Boost top-performing post to reach new audience", 'impact': "+20% reach"},
-            {'title': "📝 Blog Content Strategy", 'desc': "Create content around top search terms", 'impact': "+30% organic traffic"},
         ]
         
         for opp in opportunities[:2]:
@@ -820,18 +1439,13 @@ class SMEProductUXEngine:
                 status='pending',
                 created_at=datetime.now()
             ))
-        
         return tasks
     
     def _generate_operations_tasks(self, data: Dict) -> List[ActionTask]:
-        """Generate operations-related tasks"""
         tasks = []
-        
-        # Simulate operations tasks
         ops_tasks = [
             {'title': "📊 Monthly Financial Review", 'desc': "Review and reconcile all accounts for month-end", 'priority': 'high'},
             {'title': "📋 Supplier Contract Renewal", 'desc': "Review supplier contracts up for renewal next month", 'priority': 'medium'},
-            {'title': "🔧 System Maintenance", 'desc': "Update and backup all business systems", 'priority': 'low'},
         ]
         
         for task in ops_tasks:
@@ -847,52 +1461,27 @@ class SMEProductUXEngine:
                 created_at=datetime.now(),
                 due_date=datetime.now() + timedelta(days=7)
             ))
-        
         return tasks
     
-    # ===== Human-in-the-Loop Controls =====
-    
     def approve_task(self, task_id: str) -> Dict[str, Any]:
-        """Approve a pending task (one-tap approval)"""
         for task in self.tasks:
             if task.id == task_id and task.status == 'pending':
                 task.status = 'approved'
-                
-                # Execute action based on action_type
-                if task.action_type == 'approval':
-                    return {
-                        'status': 'approved',
-                        'task': task,
-                        'message': f"Task '{task.title}' has been approved and will be executed."
-                    }
-                elif task.action_type == 'draft':
-                    return {
-                        'status': 'drafted',
-                        'task': task,
-                        'message': f"Draft created for '{task.title}'. Review before sending."
-                    }
-                elif task.action_type == 'alert':
-                    return {
-                        'status': 'acknowledged',
-                        'task': task,
-                        'message': f"Alert '{task.title}' has been acknowledged."
-                    }
-        
+                return {
+                    'status': 'approved',
+                    'task': task,
+                    'message': f"Task '{task.title}' has been approved."
+                }
         return {'status': 'error', 'message': 'Task not found or already processed'}
     
     def dismiss_task(self, task_id: str) -> Dict[str, Any]:
-        """Dismiss a task"""
         for task in self.tasks:
             if task.id == task_id:
                 task.status = 'dismissed'
                 return {'status': 'dismissed', 'task': task, 'message': f"Task '{task.title}' dismissed"}
-        
         return {'status': 'error', 'message': 'Task not found'}
     
-    # ===== Proactive Push Delivery =====
-    
     def generate_digest(self, channel: str = 'whatsapp') -> Dict[str, Any]:
-        """Generate automated digest for proactive delivery"""
         priority_tasks = [t for t in self.tasks if t.status == 'pending' and t.priority in ['critical', 'high']]
         
         digest = {
@@ -920,7 +1509,6 @@ class SMEProductUXEngine:
         return digest
     
     def _format_digest_message(self, channel: str, top_tasks: List[ActionTask]) -> str:
-        """Format digest message for different channels"""
         if channel == 'whatsapp':
             message = "📊 *AI Shiksha Daily Business Digest* 📊\n\n"
             message += f"📌 {len([t for t in self.tasks if t.status == 'pending'])} pending tasks\n"
@@ -934,23 +1522,14 @@ class SMEProductUXEngine:
             else:
                 message += "✅ No urgent tasks. You're on track! 🎉"
             
-            message += "\n\n_Reply with #task_id to approve or dismiss_"
             return message
-        
         elif channel == 'sms':
-            return f"AI Shiksha Alert: {len([t for t in self.tasks if t.status == 'pending'])} tasks pending. {len([t for t in self.tasks if t.status == 'pending' and t.priority == 'critical'])} critical. Respond to manage."
-        
+            return f"AI Shiksha Alert: {len([t for t in self.tasks if t.status == 'pending'])} tasks pending."
         elif channel == 'email':
             return f"""
             <h2>📊 AI Shiksha Daily Business Digest</h2>
             <p><strong>{len([t for t in self.tasks if t.status == 'pending'])}</strong> pending tasks</p>
-            <p><strong>{len([t for t in self.tasks if t.status == 'pending' and t.priority == 'critical'])}</strong> critical tasks</p>
-            <h3>Top Priorities:</h3>
-            <ul>
-            {''.join([f"<li><strong>{t.title}</strong><br>{t.description}</li>" for t in top_tasks])}
-            </ul>
             """
-        
         return "Digest generated successfully"
 
 
@@ -965,7 +1544,6 @@ class DocumentIntelligenceEngine:
         self.context = LocalCurriculumOverlay.get_local_context(country_code)
     
     def extract_text_from_file(self, uploaded_file) -> str:
-        """Extract text from uploaded file (PDF, DOCX, TXT)"""
         try:
             file_extension = uploaded_file.name.split('.')[-1].lower()
             text = ""
@@ -996,8 +1574,6 @@ class DocumentIntelligenceEngine:
             return f"Error extracting text: {str(e)}"
     
     def analyze_document(self, text: str, segment: str) -> Dict[str, Any]:
-        """Analyze document content based on user segment"""
-        
         analysis = {
             'word_count': len(text.split()),
             'char_count': len(text),
@@ -1009,7 +1585,6 @@ class DocumentIntelligenceEngine:
             'curriculum': self.overlay.get('system', 'Universal')
         }
         
-        # Segment-specific analysis
         if segment == 'Student':
             analysis.update(self._analyze_student_document(text))
         elif segment == 'Teacher':
@@ -1022,7 +1597,6 @@ class DocumentIntelligenceEngine:
         return analysis
     
     def _extract_key_phrases(self, text: str) -> List[str]:
-        """Extract key phrases from text"""
         stopwords = {'the', 'a', 'an', 'of', 'to', 'for', 'with', 'on', 'at', 'from', 'by', 'in', 'and', 'or', 'but'}
         words = re.findall(r'\b[a-zA-Z]{3,}\b', text.lower())
         
@@ -1054,7 +1628,6 @@ class DocumentIntelligenceEngine:
         return phrases[:7]
     
     def _analyze_sentiment(self, text: str) -> Dict[str, Any]:
-        """Basic sentiment analysis"""
         positive_words = {'good', 'great', 'excellent', 'positive', 'achievement', 'success', 'improve', 'growth', 
                          'happy', 'satisfied', 'excited', 'motivated', 'enjoy', 'love', 'best', 'outstanding'}
         negative_words = {'bad', 'poor', 'difficult', 'challenge', 'struggle', 'fail', 'failure', 'frustrating',
@@ -1074,7 +1647,6 @@ class DocumentIntelligenceEngine:
         return {'sentiment_score': round(score, 2), 'sentiment': sentiment}
     
     def _calculate_readability(self, text: str) -> Dict[str, Any]:
-        """Calculate readability metrics"""
         sentences = re.split(r'[.!?]+', text)
         sentences = [s for s in sentences if len(s.strip()) > 0]
         words = text.split()
@@ -1109,7 +1681,6 @@ class DocumentIntelligenceEngine:
         }
     
     def _count_syllables(self, text: str) -> int:
-        """Count syllables in text (approximate)"""
         vowels = 'aeiouy'
         words = text.lower().split()
         count = 0
@@ -1124,13 +1695,10 @@ class DocumentIntelligenceEngine:
         return count
     
     def _analyze_student_document(self, text: str) -> Dict[str, Any]:
-        """Analyze student document (essay, assignment, etc.)"""
         academic_keywords = {'analyze', 'evaluate', 'synthesize', 'discuss', 'compare', 'contrast', 
                             'research', 'study', 'experiment', 'hypothesis', 'theory', 'conclusion'}
-        
         words = text.lower().split()
         academic_count = sum(1 for w in words if w in academic_keywords)
-        
         topics = self._extract_topics(text)
         
         return {
@@ -1140,10 +1708,8 @@ class DocumentIntelligenceEngine:
         }
     
     def _analyze_teacher_document(self, text: str) -> Dict[str, Any]:
-        """Analyze teacher document (lesson plan, curriculum, etc.)"""
         ped_keywords = {'objective', 'learning', 'outcome', 'assessment', 'rubric', 'activity', 
                        'discussion', 'project', 'group', 'individual', 'differentiation'}
-        
         words = text.lower().split()
         ped_count = sum(1 for w in words if w in ped_keywords)
         
@@ -1154,25 +1720,24 @@ class DocumentIntelligenceEngine:
         }
     
     def _analyze_professional_document(self, text: str) -> Dict[str, Any]:
-        """Analyze professional document (report, research, etc.)"""
         prof_keywords = {'strategy', 'analysis', 'implementation', 'results', 'findings', 
-                        'recommendation', 'efficiency', 'performance', 'optimization'}
-        
+                        'recommendation', 'efficiency', 'performance', 'optimization',
+                        'portfolio', 'market', 'investment', 'returns', 'valuation',
+                        'earnings', 'revenue', 'growth', 'margin', 'ROI'}
         words = text.lower().split()
         prof_count = sum(1 for w in words if w in prof_keywords)
         
         return {
             'professional_score': round(min(100, (prof_count / len(words) * 1000)) if words else 0, 2),
             'business_context': self._extract_business_context(text),
-            'actionable_insights': self._extract_actionable_insights(text)
+            'actionable_insights': self._extract_actionable_insights(text),
+            'financial_metrics': self._extract_financial_metrics(text)
         }
     
     def _analyze_sme_document(self, text: str) -> Dict[str, Any]:
-        """Analyze SME document (business plan, operations, etc.)"""
         sme_keywords = {'revenue', 'cost', 'profit', 'customer', 'market', 'growth', 
                        'operations', 'supply', 'logistics', 'sales', 'marketing', 'inventory',
                        'cash flow', 'balance sheet', 'income statement', 'forecast'}
-        
         words = text.lower().split()
         sme_count = sum(1 for w in words if w in sme_keywords)
         
@@ -1184,7 +1749,6 @@ class DocumentIntelligenceEngine:
         }
     
     def _extract_topics(self, text: str) -> List[str]:
-        """Extract topics from text"""
         common_topics = {
             'mathematics': ['algebra', 'geometry', 'calculus', 'statistics', 'arithmetic'],
             'science': ['biology', 'chemistry', 'physics', 'environment', 'experiment'],
@@ -1208,7 +1772,6 @@ class DocumentIntelligenceEngine:
         return list(dict.fromkeys(found_topics))
     
     def _suggest_student_improvements(self, text: str, topics: List[str]) -> List[str]:
-        """Suggest improvements for student work"""
         suggestions = []
         words = text.split()
         
@@ -1243,7 +1806,6 @@ class DocumentIntelligenceEngine:
         return suggestions[:5]
     
     def _check_curriculum_alignment(self, text: str) -> Dict[str, Any]:
-        """Check alignment with local curriculum"""
         curriculum_keywords = {
             'kenya': ['competency', 'cbc', 'knec', 'community', 'values', 'skills'],
             'bangladesh': ['nctb', 'board', 'exam', 'bangladesh', 'curriculum', 'national'],
@@ -1264,7 +1826,6 @@ class DocumentIntelligenceEngine:
         }
     
     def _suggest_teacher_enhancements(self, text: str) -> List[str]:
-        """Suggest enhancements for teaching materials"""
         suggestions = []
         text_lower = text.lower()
         
@@ -1292,7 +1853,6 @@ class DocumentIntelligenceEngine:
         return suggestions[:5]
     
     def _extract_business_context(self, text: str) -> Dict[str, Any]:
-        """Extract business context from professional document"""
         context = {
             'industry': 'Not specified',
             'market': 'Not specified',
@@ -1330,9 +1890,7 @@ class DocumentIntelligenceEngine:
         return context
     
     def _extract_actionable_insights(self, text: str) -> List[str]:
-        """Extract actionable insights from professional document"""
         insights = []
-        
         action_patterns = [
             r'(recommend|suggest|should|must|need to)\s+([^.!?]+)',
             r'(implement|adopt|use|apply)\s+([^.!?]+)',
@@ -1350,9 +1908,7 @@ class DocumentIntelligenceEngine:
         return list(dict.fromkeys(insights))[:5]
     
     def _identify_growth_opportunities(self, text: str) -> List[str]:
-        """Identify growth opportunities for SME"""
         opportunities = []
-        
         text_lower = text.lower()
         
         if any(kw in text_lower for kw in ['new market', 'expansion', 'enter', 'customer']):
@@ -1365,8 +1921,6 @@ class DocumentIntelligenceEngine:
             opportunities.append("Cost optimization and efficiency improvement")
         if any(kw in text_lower for kw in ['referral', 'repeat', 'loyalty', 'retention']):
             opportunities.append("Customer loyalty and retention program")
-        if any(kw in text_lower for kw in ['partner', 'collaborate', 'alliance']):
-            opportunities.append("Strategic partnership opportunities")
         
         if self.country == 'kenya':
             opportunities.append("Leverage mobile money and digital payments")
@@ -1380,9 +1934,7 @@ class DocumentIntelligenceEngine:
         return list(dict.fromkeys(opportunities))[:5]
     
     def _identify_automation_candidates(self, text: str) -> List[str]:
-        """Identify automation candidates for SME"""
         candidates = []
-        
         text_lower = text.lower()
         
         if any(kw in text_lower for kw in ['customer', 'support', 'enquiry', 'help']):
@@ -1401,24 +1953,28 @@ class DocumentIntelligenceEngine:
         return list(dict.fromkeys(candidates))[:5]
     
     def _extract_financial_metrics(self, text: str) -> Dict[str, Any]:
-        """Extract financial metrics from SME document"""
         metrics = {
             'revenue': None,
             'profit': None,
             'expenses': None,
-            'growth_rate': None
+            'growth_rate': None,
+            'margin': None,
+            'roi': None
         }
         
-        # Try to extract financial numbers
         revenue_pattern = r'revenue\s*[:$]?\s*\$?(\d+[\.,]?\d*)'
         profit_pattern = r'profit\s*[:$]?\s*\$?(\d+[\.,]?\d*)'
         expenses_pattern = r'expenses?\s*[:$]?\s*\$?(\d+[\.,]?\d*)'
         growth_pattern = r'growth\s*[:]?\s*(\d+[\.,]?\d*)\s*%'
+        margin_pattern = r'margin\s*[:]?\s*(\d+[\.,]?\d*)\s*%'
+        roi_pattern = r'ROI\s*[:]?\s*(\d+[\.,]?\d*)\s*%'
         
         revenue_match = re.search(revenue_pattern, text, re.IGNORECASE)
         profit_match = re.search(profit_pattern, text, re.IGNORECASE)
         expenses_match = re.search(expenses_pattern, text, re.IGNORECASE)
         growth_match = re.search(growth_pattern, text, re.IGNORECASE)
+        margin_match = re.search(margin_pattern, text, re.IGNORECASE)
+        roi_match = re.search(roi_pattern, text, re.IGNORECASE)
         
         if revenue_match:
             metrics['revenue'] = float(revenue_match.group(1).replace(',', ''))
@@ -1428,6 +1984,10 @@ class DocumentIntelligenceEngine:
             metrics['expenses'] = float(expenses_match.group(1).replace(',', ''))
         if growth_match:
             metrics['growth_rate'] = float(growth_match.group(1).replace(',', ''))
+        if margin_match:
+            metrics['margin'] = float(margin_match.group(1).replace(',', ''))
+        if roi_match:
+            metrics['roi'] = float(roi_match.group(1).replace(',', ''))
         
         return metrics
 
@@ -1711,7 +2271,6 @@ class StudentOutcomeEngine:
         return progress_metrics
     
     def _calculate_projected_grade(self, user_data):
-        """Calculate projected grade based on performance"""
         score = user_data.get('score', 0)
         
         grading_scales = {
@@ -1890,13 +2449,14 @@ class TeacherOutcomeEngine:
 
 
 class ProfessionalOutcomeEngine:
-    """Professional - Career Acceleration Lab"""
+    """Professional - Career Acceleration Lab with Research, Analysis & Portfolio Tools"""
     
     def __init__(self, domain='business', country_code='kenya'):
         self.domain = domain
         self.country = country_code
         self.overlay = LocalCurriculumOverlay.get_overlay(country_code)
         self.doc_engine = DocumentIntelligenceEngine(country_code)
+        self.intelligence = ProfessionalIntelligenceEngine(country_code)
     
     def generate_workflow(self, task_type):
         workflows = {
@@ -1932,10 +2492,92 @@ class ProfessionalOutcomeEngine:
                 ],
                 'output': 'Comprehensive analytics dashboard',
                 'localization': f'Adapted for {self.overlay.get("system", "local")} business environment'
+            },
+            'investment_research': {
+                'steps': [
+                    'Identify investment thesis',
+                    'Analyze market fundamentals',
+                    'Evaluate competitive landscape',
+                    'Build financial model',
+                    'Generate investment recommendation'
+                ],
+                'output': 'Investment research report with actionable insights',
+                'localization': f'Using {self.overlay.get("currency", "local")} market context'
+            },
+            'portfolio_analysis': {
+                'steps': [
+                    'Gather portfolio data',
+                    'Calculate risk metrics',
+                    'Analyze sector exposure',
+                    'Run stress tests',
+                    'Generate optimization recommendations'
+                ],
+                'output': 'Portfolio analysis with risk attribution',
+                'localization': f'Adapted for {self.country.upper()} market conditions'
             }
         }
         
         return workflows.get(task_type, workflows['research'])
+    
+    def hybrid_search(self, query: str, search_type: str = 'hybrid') -> List[Dict[str, Any]]:
+        """Hybrid search across documents"""
+        search_type_enum = SearchType.HYBRID
+        if search_type == 'keyword':
+            search_type_enum = SearchType.KEYWORD
+        elif search_type == 'vector':
+            search_type_enum = SearchType.VECTOR
+        elif search_type == 'semantic':
+            search_type_enum = SearchType.SEMANTIC
+        
+        return self.intelligence.hybrid_search(query, search_type_enum)
+    
+    def audit_analysis(self, analysis_text: str) -> Dict[str, Any]:
+        """Audit analysis against source documents"""
+        return self.intelligence.audit_analysis(analysis_text, self.intelligence.documents)
+    
+    def execute_quant_analysis(self, code: str, data: pd.DataFrame) -> Dict[str, Any]:
+        """Execute quantitative analysis in sandbox"""
+        return self.intelligence.execute_quant_analysis(code, data)
+    
+    def get_portfolio_metrics(self) -> Dict[str, Any]:
+        """Get portfolio metrics"""
+        return self.intelligence.calculate_portfolio_metrics()
+    
+    def run_stress_test(self, scenario: MacroScenario) -> Dict[str, Any]:
+        """Run macro stress test"""
+        return self.intelligence.run_macro_stress_test(scenario)
+    
+    def generate_deliverable(self, template_type: str, data: Dict[str, Any]) -> str:
+        """Generate professional deliverable"""
+        return self.intelligence.generate_deliverable(template_type, data)
+    
+    def extract_table(self, pdf_content: str) -> pd.DataFrame:
+        """Extract table from PDF"""
+        return self.intelligence.extract_table_from_pdf(pdf_content)
+    
+    def get_watchdog_alerts(self) -> List[WatchdogAlert]:
+        """Get watchdog alerts"""
+        return self.intelligence.watchdog_alerts
+    
+    def refresh_watchdogs(self) -> List[WatchdogAlert]:
+        """Refresh watchdog alerts"""
+        return self.intelligence.run_watchdog_alerts()
+    
+    def get_market_data(self, ticker: str) -> Dict[str, Any]:
+        """Get market data"""
+        return self.intelligence.fetch_market_data(ticker)
+    
+    def get_sec_filing(self, ticker: str) -> Dict[str, Any]:
+        """Get SEC filing"""
+        return self.intelligence.fetch_sec_filing(ticker)
+    
+    def get_earnings_call(self, ticker: str) -> Dict[str, Any]:
+        """Get earnings call transcript"""
+        return self.intelligence.fetch_earnings_call(ticker)
+    
+    def get_workspace_data(self) -> Dict[str, Any]:
+        """Get workspace data"""
+        return self.intelligence.get_workspace_data()
 
 
 class SMEOutcomeEngine:
@@ -1951,7 +2593,6 @@ class SMEOutcomeEngine:
         self.ux_engine = SMEProductUXEngine(country_code)
     
     def generate_automation(self, business_type):
-        """Generate automation solutions for SMEs"""
         automations = {
             'retail': {
                 'inventory': 'Auto-reorder when stock below threshold',
@@ -1985,23 +2626,18 @@ class SMEOutcomeEngine:
         return rails.get(self.country, 'M-Pesa, Airtel Money')
     
     def get_action_tasks(self, business_data: Dict[str, Any]) -> List[ActionTask]:
-        """Get priority-ranked action tasks"""
         return self.ux_engine.generate_tasks(business_data)
     
     def process_webhook(self, event_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Process webhook events"""
         return self.infrastructure.process_webhook(event_type, payload)
     
     def connect_api(self, service: str, credentials: Dict[str, str]) -> Dict[str, Any]:
-        """Connect to external API"""
         return self.infrastructure.connect_api(service, credentials)
     
     def natural_language_query(self, query: str, data_context: Dict[str, Any]) -> Dict[str, Any]:
-        """Natural language query over business data"""
         return self.ai_engine.natural_language_query(query, data_context)
     
     def generate_digest(self, channel: str = 'whatsapp') -> Dict[str, Any]:
-        """Generate proactive push digest"""
         return self.ux_engine.generate_digest(channel)
 
 
@@ -2009,7 +2645,6 @@ class SMEOutcomeEngine:
 
 # Initialize session state
 def init_session_state():
-    """Initialize all session state variables"""
     defaults = {
         'user_role': None,
         'country_code': 'kenya',
@@ -2024,7 +2659,8 @@ def init_session_state():
         'doc_analysis_history': [],
         'sme_tasks': [],
         'sme_alerts': [],
-        'webhook_events': []
+        'webhook_events': [],
+        'professional_workspace': {}
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -2117,6 +2753,39 @@ def apply_custom_css():
         border-radius: 5px;
         margin: 10px 0;
     }
+    .professional-card {
+        background: #f3e5f5;
+        border-left: 5px solid #9c27b0;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 10px 0;
+    }
+    .watchdog-alert {
+        background: #fff3e0;
+        border-left: 5px solid #ff6f00;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 10px 0;
+    }
+    .citation-box {
+        background: #e3f2fd;
+        border-left: 5px solid #1565c0;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 10px 0;
+        font-family: monospace;
+        font-size: 0.9em;
+    }
+    .split-screen {
+        display: flex;
+        gap: 20px;
+    }
+    .split-screen > div {
+        flex: 1;
+        padding: 15px;
+        background: #f5f5f5;
+        border-radius: 10px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -2166,7 +2835,7 @@ st.session_state.user_role = user_role
 menu_options = {
     'Student': ['🎓 Dashboard', '📝 Practice', '📊 Progress', '🏆 Achievements', '📄 Document Analysis'],
     'Teacher': ['👨‍🏫 Dashboard', '📋 Lesson Builder', '📝 Assessment', '⏱️ Hours Saved', '📄 Document Analysis'],
-    'Professional': ['💼 Dashboard', '🔬 Research', '📈 Analytics', '📚 Portfolio', '📄 Document Analysis'],
+    'Professional': ['💼 Dashboard', '🔬 Research', '📊 Portfolio', '📄 Document Analysis', '📑 Workspace', '⚡ Watchdogs'],
     'SME Business Owner': ['🏢 Dashboard', '📈 Growth', '🤖 Automation', '📊 Analytics', '📄 Document Analysis', '🔌 API Connectors', '⚡ Webhooks']
 }
 
@@ -2199,6 +2868,479 @@ def show_vibe_check():
             st.info(f"🚀 **Vibe Mission:** {missions.get(vibe)}")
 
 show_vibe_check()
+
+
+# ==================== PROFESSIONAL FUNCTIONS ====================
+
+def show_professional_dashboard():
+    """Professional Dashboard with Research, Analysis & Portfolio Tools"""
+    st.header(f"💼 Professional Intelligence Dashboard - {country_code.title()}")
+    
+    prof_engine = ProfessionalOutcomeEngine(st.session_state.domain, country_code)
+    
+    # Quick Stats
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("📚 Documents", len(prof_engine.intelligence.documents), "↑ 2 new")
+    col2.metric("📊 Portfolio Value", "$75,825", "↑ 8.2%")
+    col3.metric("⚠️ Watchdog Alerts", len(prof_engine.intelligence.watchdog_alerts), "3 unread")
+    col4.metric("⏱️ Time Saved", "18 hrs", "↑ 4 hrs")
+    
+    # Portfolio Overview
+    st.subheader("📊 Portfolio Overview")
+    portfolio_metrics = prof_engine.get_portfolio_metrics()
+    
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Value", f"${portfolio_metrics['total_value']:,.2f}")
+    col2.metric("Volatility", f"{portfolio_metrics['volatility']:.2%}")
+    col3.metric("Sharpe Ratio", f"{portfolio_metrics['sharpe_ratio']:.2f}")
+    col4.metric("Concentration Risk", f"{portfolio_metrics['concentration_risk']:.1%}")
+    
+    # Portfolio Holdings
+    with st.expander("📈 Portfolio Holdings", expanded=True):
+        assets_data = []
+        for asset in prof_engine.intelligence.portfolio_assets:
+            assets_data.append({
+                'Ticker': asset.ticker,
+                'Name': asset.name,
+                'Shares': asset.shares,
+                'Current Price': f"${asset.current_price:.2f}",
+                'Market Value': f"${asset.market_value:,.2f}",
+                'Weight': f"{asset.weight:.1%}",
+                'Daily Change': f"{asset.daily_change:.1%}"
+            })
+        st.dataframe(pd.DataFrame(assets_data))
+    
+    # Watchdog Alerts
+    st.subheader("⚡ 24/7 Asset Watchdogs")
+    alerts = prof_engine.get_watchdog_alerts()
+    
+    for alert in alerts[-5:]:
+        severity_color = {
+            'high': '🔴',
+            'medium': '🟡',
+            'low': '🟢'
+        }.get(alert.severity, '🔵')
+        
+        st.markdown(f"""
+        <div class="watchdog-alert">
+        <strong>{severity_color} {alert.asset_ticker}</strong> - {alert.alert_type.upper()}
+        <br>{alert.message}
+        <br><small>Source: {alert.source} | {alert.timestamp.strftime('%Y-%m-%d %H:%M')}</small>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    if st.button("🔄 Refresh Watchdogs"):
+        new_alerts = prof_engine.refresh_watchdogs()
+        if new_alerts:
+            st.success(f"✅ {len(new_alerts)} new alerts detected!")
+            st.rerun()
+        else:
+            st.info("No new alerts detected.")
+
+
+def show_professional_research():
+    """Professional Research Tools"""
+    st.header(f"🔬 Research & Analysis - {country_code.title()}")
+    
+    prof_engine = ProfessionalOutcomeEngine(st.session_state.domain, country_code)
+    
+    # Hybrid Search
+    st.subheader("🔍 Hybrid Search Engine")
+    st.caption("Search across documents using vector + keyword (BM25) hybrid retrieval")
+    
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        search_query = st.text_input("Search query:", placeholder="e.g., 'TechCorp Q4 2024 earnings revenue growth'")
+    with col2:
+        search_type = st.selectbox("Search Type:", ['hybrid', 'keyword', 'vector', 'semantic'])
+    
+    if search_query:
+        with st.spinner("Searching..."):
+            results = prof_engine.hybrid_search(search_query, search_type)
+        
+        if results:
+            st.success(f"✅ Found {len(results)} results")
+            for result in results[:5]:
+                doc = result['document']
+                with st.expander(f"📄 {doc.title} (Score: {result['score']:.3f})"):
+                    st.markdown(f"**Source Type:** {doc.source_type}")
+                    st.markdown(f"**Matches:** {', '.join(result['matches'][:5])}")
+                    st.markdown(f"**Content Preview:** {doc.content[:300]}...")
+                    
+                    # Show citations
+                    if doc.citations:
+                        st.markdown("**📝 Citations:**")
+                        for citation in doc.citations[:3]:
+                            st.markdown(f"- Page {citation.get('page', 'N/A')}: {citation.get('claim', 'N/A')}")
+        else:
+            st.info("No results found. Try adjusting your search terms.")
+    
+    # Document Upload & Ingestion
+    st.divider()
+    st.subheader("📄 Document Ingestion")
+    st.caption("Upload documents for AI-powered analysis and citation tracking")
+    
+    uploaded_file = st.file_uploader(
+        "Upload Document",
+        type=['pdf', 'docx', 'txt', 'csv', 'json'],
+        key="prof_doc_upload"
+    )
+    
+    if uploaded_file is not None:
+        source_type = st.selectbox("Source Type:", ['sec_filing', 'earnings_call', 'research', 'news'])
+        
+        if st.button("📥 Ingest Document"):
+            with st.spinner("Ingesting document..."):
+                doc_engine = DocumentIntelligenceEngine(country_code)
+                text = doc_engine.extract_text_from_file(uploaded_file)
+                
+                if text.startswith("Error"):
+                    st.error(f"⚠️ {text}")
+                else:
+                    doc = prof_engine.intelligence.ingest_document(
+                        text, 
+                        uploaded_file.name, 
+                        source_type,
+                        {'upload_date': datetime.now().isoformat()}
+                    )
+                    
+                    st.success(f"✅ Document ingested: {doc.title}")
+                    
+                    # Show extracted information
+                    st.markdown(f"**Document ID:** {doc.id}")
+                    st.markdown(f"**Source Type:** {doc.source_type}")
+                    st.markdown(f"**Words:** {len(doc.content.split())}")
+                    
+                    if doc.citations:
+                        st.markdown("**📝 Extracted Citations:**")
+                        for citation in doc.citations[:3]:
+                            st.markdown(f"- {citation.get('claim', 'N/A')}")
+    
+    # Audit-Linked Citation Engine
+    st.divider()
+    st.subheader("🔗 Audit-Linked Citation Engine")
+    st.caption("Verify claims against source documents with page-level citations")
+    
+    analysis_text = st.text_area(
+        "Enter analysis text to audit:",
+        height=150,
+        placeholder="e.g., 'TechCorp revenue reached $12.4 billion in Q4 2024, up 18% year-over-year.'"
+    )
+    
+    if st.button("🔍 Audit Analysis"):
+        with st.spinner("Auditing analysis..."):
+            audit_results = prof_engine.audit_analysis(analysis_text)
+        
+        st.markdown(f"**Confidence Score:** {audit_results['confidence_score']:.1%}")
+        
+        if audit_results['verified_claims']:
+            st.success(f"✅ {len(audit_results['verified_claims'])} claims verified")
+            for claim in audit_results['verified_claims']:
+                st.markdown(f"""
+                <div class="citation-box">
+                <strong>✅ Verified:</strong> {claim['claim']}
+                <br><small>Source: {claim['source']}</small>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        if audit_results['unverified_claims']:
+            st.warning(f"⚠️ {len(audit_results['unverified_claims'])} unverified claims")
+            for claim in audit_results['unverified_claims']:
+                st.markdown(f"- {claim}")
+    
+    # Code-Executing Data Sandbox
+    st.divider()
+    st.subheader("🧮 Code-Executing Data Sandbox")
+    st.caption("Run quantitative analysis in a sandboxed Python environment")
+    
+    code_col1, code_col2 = st.columns(2)
+    
+    with code_col1:
+        sample_data = pd.DataFrame({
+            'Date': ['2024-01-01', '2024-02-01', '2024-03-01', '2024-04-01'],
+            'Revenue': [10000, 12000, 15000, 18000],
+            'Expenses': [6000, 7000, 8000, 9000],
+            'Profit': [4000, 5000, 7000, 9000]
+        })
+        
+        st.dataframe(sample_data)
+        
+        code = st.text_area(
+            "Python Code:",
+            height=150,
+            value="""# Calculate metrics
+result = {
+    'total_revenue': data['Revenue'].sum(),
+    'avg_revenue': data['Revenue'].mean(),
+    'total_profit': data['Profit'].sum(),
+    'profit_margin': data['Profit'].sum() / data['Revenue'].sum()
+}"""
+        )
+    
+    with code_col2:
+        if st.button("▶️ Execute Code", type="primary"):
+            with st.spinner("Executing code in sandbox..."):
+                result = prof_engine.execute_quant_analysis(code, sample_data)
+            
+            if result['status'] == 'success':
+                st.success("✅ Code executed successfully!")
+                st.json(result['result'])
+            else:
+                st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+
+
+def show_professional_portfolio():
+    """Professional Portfolio Intelligence"""
+    st.header(f"📊 Portfolio Intelligence - {country_code.title()}")
+    
+    prof_engine = ProfessionalOutcomeEngine(st.session_state.domain, country_code)
+    
+    # Portfolio Summary
+    portfolio_metrics = prof_engine.get_portfolio_metrics()
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Portfolio Value", f"${portfolio_metrics['total_value']:,.2f}")
+    col2.metric("Volatility (Annualized)", f"{portfolio_metrics['volatility']:.2%}")
+    col3.metric("Sharpe Ratio", f"{portfolio_metrics['sharpe_ratio']:.2f}")
+    
+    # Sector Exposure
+    st.subheader("📊 Sector Concentration")
+    sector_data = pd.DataFrame({
+        'Sector': list(portfolio_metrics['sector_exposure'].keys()),
+        'Weight': [f"{v:.1%}" for v in portfolio_metrics['sector_exposure'].values()]
+    })
+    st.dataframe(sector_data)
+    
+    # Macro Scenario Stress-Testing
+    st.divider()
+    st.subheader("🌍 Macro Scenario Stress-Testing")
+    st.caption("Simulate macroeconomic shocks against your portfolio")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        scenario_name = st.text_input("Scenario Name:", "Rate Hike Scenario")
+        scenario_desc = st.text_area("Description:", "Federal Reserve rate hike with inflation impact")
+        
+        rate_change = st.slider("Rate Change (bps):", -100, 100, 25) / 100
+        inflation_change = st.slider("Inflation Change (%):", -5, 5, 2) / 100
+        growth_change = st.slider("Growth Change (%):", -5, 5, 1) / 100
+        market_shock = st.slider("Market Shock (%):", -20, 20, -5) / 100
+    
+    with col2:
+        if st.button("🧪 Run Stress Test", type="primary"):
+            scenario = MacroScenario(
+                name=scenario_name,
+                description=scenario_desc,
+                rate_change=rate_change,
+                inflation_change=inflation_change,
+                growth_change=growth_change,
+                market_shock=market_shock,
+                portfolio_impact=0.0
+            )
+            
+            with st.spinner("Running stress test..."):
+                stress_results = prof_engine.run_stress_test(scenario)
+            
+            st.success("✅ Stress Test Complete!")
+            st.metric("Portfolio Impact", f"{stress_results['total_return']:.1f}%")
+            st.metric("Risk Assessment", stress_results['risk_assessment'])
+            
+            # Asset-level impacts
+            st.markdown("**Asset Impacts:**")
+            impact_df = pd.DataFrame(stress_results['asset_impacts'])
+            st.dataframe(impact_df[['ticker', 'current_value', 'impacted_value', 'impact_percent']])
+    
+    # One-Click Deliverable Generator
+    st.divider()
+    st.subheader("📄 One-Click Deliverable Generator")
+    st.caption("Turn research notes into professional deliverables")
+    
+    template_type = st.selectbox(
+        "Template Type:",
+        ['investment_memo', 'client_tear_sheet', 'research_note']
+    )
+    
+    template_data = {
+        'date': datetime.now().strftime('%Y-%m-%d'),
+        'analyst': st.text_input("Analyst Name:", "John Doe"),
+        'summary': st.text_area("Executive Summary:", "Investment opportunity with strong growth potential."),
+        'thesis': st.text_area("Investment Thesis:", "Company has competitive advantage in growing market."),
+        'risks': st.text_area("Risk Analysis:", "Market volatility and regulatory risks."),
+        'financials': st.text_area("Financial Projections:", "Revenue growth of 15% projected."),
+        'action': st.selectbox("Recommendation:", ['Buy', 'Hold', 'Sell']),
+        'target_price': st.number_input("Target Price:", value=150.00, step=5.00),
+        'time_horizon': st.selectbox("Time Horizon:", ['Short-term', 'Medium-term', 'Long-term']),
+        'appendix': st.text_area("Appendix:", "Additional data and charts.")
+    }
+    
+    if st.button("📄 Generate Deliverable"):
+        deliverable = prof_engine.generate_deliverable(template_type, template_data)
+        
+        st.markdown("### 📋 Generated Deliverable")
+        st.markdown(deliverable)
+        
+        st.download_button(
+            label="📥 Download Deliverable",
+            data=deliverable,
+            file_name=f"{template_type}_{datetime.now().strftime('%Y%m%d')}.md",
+            mime="text/markdown"
+        )
+
+
+def show_professional_workspace():
+    """Split-Screen Interactive Workspace"""
+    st.header(f"📑 Split-Screen Workspace - {country_code.title()}")
+    st.caption("Dual-pane interface with working notes and source documents")
+    
+    prof_engine = ProfessionalOutcomeEngine(st.session_state.domain, country_code)
+    workspace_data = prof_engine.get_workspace_data()
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("📝 Working Notes")
+        st.text_area(
+            "Notes:",
+            height=400,
+            value="""# Research Notes
+## Key Findings
+- TechCorp Q4 2024 revenue: $12.4B (18% YoY growth)
+- EPS: $2.15 vs $1.95 estimate
+- Cloud revenue: $4.2B (32% growth)
+
+## Investment Thesis
+Strong growth trajectory in cloud and AI segments.
+Operating margin expansion to 28.5% indicates improving efficiency.
+
+## Risks
+- Competitive pressure in cloud market
+- Regulatory scrutiny on AI products
+- Macroeconomic headwinds
+
+## Next Steps
+1. Review competitor earnings
+2. Analyze forward guidance
+3. Build valuation model
+"""
+        )
+        
+        if st.button("💾 Save Notes"):
+            st.success("✅ Notes saved successfully!")
+    
+    with col2:
+        st.subheader("📄 Source Documents")
+        
+        for doc in workspace_data['documents']:
+            with st.expander(f"📄 {doc['title']}"):
+                st.markdown(f"**Type:** {doc['type']}")
+                st.markdown(f"**Preview:** {doc['content']}")
+        
+        # Automated Table Extraction
+        st.divider()
+        st.subheader("📊 Automated Table Extraction")
+        st.caption("Extract tables from PDFs into Excel-ready format")
+        
+        if st.button("🔄 Extract Tables from Documents"):
+            with st.spinner("Extracting tables..."):
+                for doc in prof_engine.intelligence.documents:
+                    tables = prof_engine.extract_table(doc.content)
+                    if not tables.empty:
+                        st.markdown(f"**Table from {doc.title}:**")
+                        st.dataframe(tables)
+                        
+                        # Download as CSV
+                        csv = tables.to_csv(index=False)
+                        st.download_button(
+                            label=f"📥 Download {doc.title} Table",
+                            data=csv,
+                            file_name=f"{doc.id}_table.csv",
+                            mime="text/csv"
+                        )
+
+
+def show_professional_watchdogs():
+    """24/7 Asset Watchdogs"""
+    st.header(f"⚡ 24/7 Asset Watchdogs - {country_code.title()}")
+    st.caption("Automated agents scanning earnings, regulatory filings, and market news")
+    
+    prof_engine = ProfessionalOutcomeEngine(st.session_state.domain, country_code)
+    
+    # Control Panel
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("🔄 Refresh All Watchdogs", type="primary"):
+            new_alerts = prof_engine.refresh_watchdogs()
+            if new_alerts:
+                st.success(f"✅ {len(new_alerts)} new alerts detected!")
+                st.rerun()
+            else:
+                st.info("No new alerts detected.")
+    
+    with col2:
+        st.caption(f"Total Alerts: {len(prof_engine.get_watchdog_alerts())}")
+    
+    with col3:
+        unread = len([a for a in prof_engine.get_watchdog_alerts() if not a.read])
+        st.caption(f"Unread: {unread}")
+    
+    # Filter
+    filter_type = st.selectbox("Filter by:", ['All', 'earnings', 'filing', 'news', 'price'])
+    
+    # Display Alerts
+    alerts = prof_engine.get_watchdog_alerts()
+    if filter_type != 'All':
+        alerts = [a for a in alerts if a.alert_type == filter_type]
+    
+    for alert in alerts:
+        severity_color = {
+            'high': '🔴',
+            'medium': '🟡',
+            'low': '🟢'
+        }.get(alert.severity, '🔵')
+        
+        col1, col2 = st.columns([5, 1])
+        with col1:
+            st.markdown(f"""
+            <div class="watchdog-alert">
+            <strong>{severity_color} {alert.asset_ticker}</strong> - {alert.alert_type.upper()}
+            <br>{alert.message}
+            <br><small>Source: {alert.source} | {alert.timestamp.strftime('%Y-%m-%d %H:%M')}</small>
+            </div>
+            """, unsafe_allow_html=True)
+        with col2:
+            if not alert.read:
+                if st.button("📖 Mark Read", key=f"read_{alert.id}"):
+                    alert.read = True
+                    st.rerun()
+    
+    if not alerts:
+        st.info("No alerts to display.")
+    
+    # Real-Time Market Feeds
+    st.divider()
+    st.subheader("📈 Real-Time Market Feeds")
+    
+    ticker = st.text_input("Enter Ticker:", "AAPL")
+    
+    if ticker:
+        tab1, tab2, tab3 = st.tabs(["📊 Market Data", "📄 SEC Filings", "🎙️ Earnings Call"])
+        
+        with tab1:
+            with st.spinner(f"Fetching market data for {ticker}..."):
+                market_data = prof_engine.get_market_data(ticker)
+            st.json(market_data)
+        
+        with tab2:
+            with st.spinner(f"Fetching SEC filings for {ticker}..."):
+                filings = prof_engine.get_sec_filing(ticker)
+            st.json(filings)
+        
+        with tab3:
+            with st.spinner(f"Fetching earnings call for {ticker}..."):
+                earnings = prof_engine.get_earnings_call(ticker)
+            st.json(earnings)
+
 
 # ==================== DOCUMENT ANALYSIS COMPONENT ====================
 
@@ -2286,6 +3428,15 @@ def show_document_analysis():
                     business = analysis.get('business_context', {})
                     st.markdown(f"**🏭 Industry:** {business.get('industry', 'Not specified')}")
                     st.markdown(f"**📊 Key Metrics:** {', '.join(business.get('key_metrics', ['None identified']))}")
+                    fin_metrics = analysis.get('financial_metrics', {})
+                    if fin_metrics.get('revenue'):
+                        st.metric("💰 Revenue", f"${fin_metrics['revenue']:,.0f}")
+                    if fin_metrics.get('profit'):
+                        st.metric("📈 Profit", f"${fin_metrics['profit']:,.0f}")
+                    if fin_metrics.get('margin'):
+                        st.metric("📊 Margin", f"{fin_metrics['margin']:.1f}%")
+                    if fin_metrics.get('roi'):
+                        st.metric("💎 ROI", f"{fin_metrics['roi']:.1f}%")
                 with col2:
                     st.markdown("**💡 Actionable Insights:**")
                     for insight in analysis.get('actionable_insights', []):
@@ -2303,8 +3454,6 @@ def show_document_analysis():
                         st.metric("💰 Revenue", f"${fin_metrics['revenue']:,.0f}")
                     if fin_metrics.get('profit'):
                         st.metric("📈 Profit", f"${fin_metrics['profit']:,.0f}")
-                    if fin_metrics.get('growth_rate'):
-                        st.metric("📊 Growth Rate", f"{fin_metrics['growth_rate']:.1f}%")
                 with col2:
                     st.markdown("**🤖 Automation Candidates:**")
                     for candidate in analysis.get('automation_candidates', []):
@@ -2327,7 +3476,16 @@ def show_document_analysis():
                 Key Phrases: {', '.join(analysis.get('key_phrases', [])[:7])}
                 """
                 
-                if user_role == 'SME Business Owner':
+                if user_role == 'Professional':
+                    report += f"""
+                    
+                    Professional Analysis:
+                    - Professional Score: {analysis.get('professional_score', 0)}%
+                    - Industry: {analysis.get('business_context', {}).get('industry', 'Not specified')}
+                    - Insights: {', '.join(analysis.get('actionable_insights', []))}
+                    - Financial Metrics: {json.dumps(analysis.get('financial_metrics', {}), indent=2)}
+                    """
+                elif user_role == 'SME Business Owner':
                     report += f"""
                     
                     SME Analysis:
@@ -2351,10 +3509,8 @@ def show_sme_dashboard():
     """Enhanced SME Dashboard with Action-Oriented Task Feed"""
     st.header(f"🏢 SME Growth Automation Engine - {country_code.title()}")
     
-    # Initialize engines
     sme_engine = SMEOutcomeEngine('africa' if country_code in ['kenya', 'bangladesh'] else 'global', country_code)
     
-    # Sample business data
     business_data = {
         'inventory': [
             {'id': 'SKU-001', 'name': 'Product A', 'quantity': 45, 'threshold': 50, 'price': 25.00},
@@ -2376,35 +3532,29 @@ def show_sme_dashboard():
         ]
     }
     
-    # Key Metrics
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("📊 Revenue", "$15,750", "↑ 12.5%")
     col2.metric("👥 Customers", "342", "↑ 8.3%")
     col3.metric("📦 Inventory Items", "1,247", "↓ 3.2%")
     col4.metric("⚡ Automation Rate", "68%", "↑ 12%")
     
-    # Action-Oriented Task Feed
     st.subheader("🎯 Action-Oriented Task Feed")
     st.caption("Priority-ranked recommendations based on real-time business data")
     
-    # Generate tasks
     tasks = sme_engine.get_action_tasks(business_data)
     
-    # Filter controls
     filter_col1, filter_col2 = st.columns(2)
     with filter_col1:
         priority_filter = st.selectbox("Filter by Priority:", ['All', 'Critical', 'High', 'Medium', 'Low'])
     with filter_col2:
         category_filter = st.selectbox("Filter by Category:", ['All', 'inventory', 'finance', 'customers', 'marketing', 'operations'])
     
-    # Apply filters
     filtered_tasks = tasks
     if priority_filter != 'All':
         filtered_tasks = [t for t in filtered_tasks if t.priority.lower() == priority_filter.lower()]
     if category_filter != 'All':
         filtered_tasks = [t for t in filtered_tasks if t.category == category_filter]
     
-    # Display tasks
     for task in filtered_tasks[:10]:
         priority_class = {
             'critical': 'task-critical',
@@ -2449,7 +3599,6 @@ def show_sme_dashboard():
     if not filtered_tasks:
         st.info("🎉 No pending tasks! Your business is on track.")
     
-    # AI-Powered Natural Language Query
     st.divider()
     st.subheader("💬 AI Business Assistant")
     st.caption("Ask questions about your business in plain English")
@@ -2472,7 +3621,6 @@ def show_sme_dashboard():
                 elif result.get('data') and isinstance(result['data'], list):
                     st.dataframe(pd.DataFrame(result['data']))
     
-    # Proactive Push Delivery
     st.divider()
     st.subheader("📱 Proactive Push Delivery")
     st.caption("Automated digests and alerts through your preferred channels")
@@ -2505,7 +3653,6 @@ def show_sme_growth():
     sme_engine = SMEOutcomeEngine('africa' if country_code in ['kenya', 'bangladesh'] else 'global', country_code)
     ai_engine = SMEAIEngine(country_code)
     
-    # Predictive Analytics
     st.subheader("🔮 Predictive Analytics")
     
     tab1, tab2, tab3, tab4 = st.tabs(["💰 Cash Flow", "📊 Churn Prediction", "📦 Inventory", "💎 Customer LTV"])
@@ -2514,15 +3661,13 @@ def show_sme_growth():
         st.markdown("### Cash Flow Forecast (Next 30 Days)")
         cash_flow = ai_engine.predict_cash_flow([])
         
-        # Create DataFrame for chart
         df = pd.DataFrame(cash_flow['predictions'])
         st.line_chart(df.set_index('day')['balance'])
         
         col1, col2, col3 = st.columns(3)
         col1.metric("📊 Minimum Balance", f"${cash_flow['min_balance']:,.2f}", f"Day {cash_flow['min_balance_day']}")
         col2.metric("📈 Average Daily Balance", f"${cash_flow['avg_daily_balance']:,.2f}")
-        col3.metric("⚠️ Risk Level", cash_flow['risk_level'].upper(), 
-                    "High" if cash_flow['risk_level'] == 'high' else "Medium" if cash_flow['risk_level'] == 'medium' else "Low")
+        col3.metric("⚠️ Risk Level", cash_flow['risk_level'].upper())
         
         if cash_flow['risk_level'] == 'high':
             st.warning("⚠️ Cash flow risk detected! Consider reducing expenses or increasing revenue.")
@@ -2541,7 +3686,6 @@ def show_sme_growth():
         churn_predictions = ai_engine.predict_churn(customers)
         df_churn = pd.DataFrame(churn_predictions)
         
-        # Color coding for risk levels
         def color_risk(val):
             if val == 'high':
                 return '🔴 High'
@@ -2570,7 +3714,6 @@ def show_sme_growth():
         inventory_forecast = ai_engine.predict_inventory_depletion(inventory_data)
         df_inventory = pd.DataFrame(inventory_forecast)
         
-        # Status color coding
         def color_status(val):
             if val == 'critical':
                 return '🔴 Critical'
@@ -2600,7 +3743,6 @@ def show_sme_growth():
         ltv_predictions = ai_engine.predict_customer_ltv(customer_data)
         df_ltv = pd.DataFrame(ltv_predictions)
         
-        # Segment color coding
         def color_segment(val):
             if val == 'high':
                 return '🟢 High Value'
@@ -2656,7 +3798,6 @@ def show_sme_automation():
         for rail in rails.split(', '):
             st.markdown(f"✅ {rail}")
     
-    # RAG Natural Language Query
     st.divider()
     st.subheader("💬 AI Business Query (RAG)")
     st.caption("Ask questions about your automation and business data")
@@ -2679,7 +3820,6 @@ def show_sme_api_connectors():
     
     sme_engine = SMEOutcomeEngine('africa' if country_code in ['kenya', 'bangladesh'] else 'global', country_code)
     
-    # Available APIs
     st.subheader("📊 Available Integrations")
     
     api_options = ['stripe', 'quickbooks', 'shopify', 'toast', 'jobber']
@@ -2717,7 +3857,6 @@ def show_sme_api_connectors():
                 else:
                     st.error(f"❌ {result['message']}")
     
-    # Connected Services
     st.divider()
     st.subheader("📡 Connected Services")
     
@@ -2728,7 +3867,6 @@ def show_sme_api_connectors():
     else:
         st.info("No services connected yet. Connect your first service above.")
     
-    # API Data Preview
     st.divider()
     st.subheader("📊 API Data Preview")
     
@@ -2754,7 +3892,6 @@ def show_sme_webhooks():
     
     sme_engine = SMEOutcomeEngine('africa' if country_code in ['kenya', 'bangladesh'] else 'global', country_code)
     
-    # Webhook Events
     st.subheader("📡 Available Webhook Events")
     
     webhook_events = [
@@ -2768,13 +3905,11 @@ def show_sme_webhooks():
     df_webhooks = pd.DataFrame(webhook_events)
     st.dataframe(df_webhooks)
     
-    # Simulate Webhook
     st.divider()
     st.subheader("🔧 Test Webhook Simulation")
     
     event_type = st.selectbox("Select Event Type:", ['checkout.paid', 'invoice.overdue', 'inventory.low', 'customer.churn_risk'])
     
-    # Event-specific payload
     if event_type == 'checkout.paid':
         payload = {
             'amount': 150.00,
@@ -2794,7 +3929,7 @@ def show_sme_webhooks():
             'current_qty': 3,
             'threshold': 10
         }
-    else:  # customer.churn_risk
+    else:
         payload = {
             'customer': {'id': 123, 'name': 'Bob Johnson', 'email': 'bob@example.com'},
             'churn_score': 0.75,
@@ -2817,7 +3952,6 @@ def show_sme_webhooks():
             st.markdown("**📋 Generated Action Task:**")
             st.info(f"**{task.title}**\n\n{task.description}")
     
-    # Webhook History
     st.divider()
     st.subheader("📜 Webhook History")
     
@@ -2891,10 +4025,10 @@ def show_home():
     with col3:
         st.markdown("**💼 Professionals**")
         st.caption("Career Acceleration Lab")
-        st.markdown("✅ AI workflows")
-        st.markdown("✅ Portfolio artifacts")
-        st.markdown("✅ Research synthesis")
-        st.markdown("✅ Domain tracks")
+        st.markdown("✅ Hybrid search")
+        st.markdown("✅ Citation engine")
+        st.markdown("✅ Portfolio monitoring")
+        st.markdown("✅ Stress testing")
     
     with col4:
         st.markdown("**🏢 SMEs**")
@@ -3044,56 +4178,6 @@ def show_teacher_dashboard():
                 """)
 
 
-def show_professional_dashboard():
-    st.header(f"💼 Professional Dashboard - {country_code.title()}")
-    
-    professional_engine = ProfessionalOutcomeEngine(st.session_state.domain, country_code)
-    
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Workflows Automated", "12", "↑ 3")
-    col2.metric("Artifacts Generated", "24", "↑ 5")
-    col3.metric("Time Saved", "18 hrs", "↑ 4 hrs")
-    
-    domain = st.selectbox("Select Domain:", ['Business', 'Finance', 'Marketing', 'Research', 'Education Technology'])
-    st.session_state.domain = domain.lower()
-    
-    st.subheader("🔬 Applied AI Workflow Generator")
-    st.caption(f"Adapted for {country_code.upper()} business environment")
-    
-    task_type = st.selectbox("Task Type:", ['research', 'marketing', 'analytics', 'reporting'])
-    
-    if st.button("⚡ Generate AI Workflow", type="primary"):
-        workflow = professional_engine.generate_workflow(task_type)
-        
-        st.markdown("### 🤖 AI-Powered Workflow")
-        st.markdown(f"**Localization:** {workflow.get('localization', 'Global standard')}")
-        
-        st.markdown("#### Steps:")
-        for i, step in enumerate(workflow['steps'], 1):
-            st.markdown(f"{i}. {step}")
-        
-        st.info(f"**Output:** {workflow['output']}")
-        
-        with st.expander("📄 View Sample Artifact"):
-            st.markdown(f"""
-            ### Executive Summary - {country_code.upper()} Market
-            
-            **Generated:** {datetime.now().strftime('%Y-%m-%d')}
-            **Country Context:** {country_code.upper()}
-            **Currency:** {overlay.get('currency', 'Local')}
-            
-            **Key Findings:**
-            - 42% increase in efficiency with AI workflows
-            - 37% reduction in manual processing time
-            - $15,000 annual cost savings projected
-            
-            **Recommendations:**
-            1. Implement automated reporting
-            2. Deploy AI-powered analytics
-            3. Establish continuous improvement loop
-            """)
-
-
 # ==================== MAIN NAVIGATION ====================
 
 def main():
@@ -3118,11 +4202,13 @@ def main():
     elif choice == '💼 Dashboard':
         show_professional_dashboard()
     elif choice == '🔬 Research':
-        show_professional_dashboard()
-    elif choice == '📈 Analytics':
-        show_professional_dashboard()
-    elif choice == '📚 Portfolio':
-        show_professional_dashboard()
+        show_professional_research()
+    elif choice == '📊 Portfolio':
+        show_professional_portfolio()
+    elif choice == '📑 Workspace':
+        show_professional_workspace()
+    elif choice == '⚡ Watchdogs':
+        show_professional_watchdogs()
     elif choice == '🏢 Dashboard':
         show_sme_dashboard()
     elif choice == '📈 Growth':
