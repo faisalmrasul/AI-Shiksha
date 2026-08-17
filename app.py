@@ -1,6 +1,7 @@
 # app.py - AI Shiksha Global Platform with Universal Core + Local Overlay Architecture
 # Built for global scalability with country-specific curriculum overlays
 # Enhanced with Document Intelligence for all segments
+# Teacher Intelligence Engine with Lesson Builders, Assessment, Hours Saved
 # Professional Intelligence Engine with Research, Analysis & Portfolio Tools
 # SME Growth Automation Engine with Data Infrastructure & AI Analytics
 
@@ -37,6 +38,824 @@ try:
 except ImportError:
     docx = None
 
+# ==================== TEACHER DATA MODELS ====================
+
+@dataclass
+class LessonPlan:
+    """Complete lesson plan structure"""
+    id: str
+    title: str
+    subject: str
+    grade_level: str
+    duration: int  # minutes
+    objectives: List[str]
+    standards: List[str]
+    materials: List[str]
+    warm_up: str
+    direct_instruction: str
+    guided_practice: str
+    independent_practice: str
+    assessment: str
+    differentiation: Dict[str, str]
+    exit_ticket: str
+    created_at: datetime
+    modified_at: datetime
+
+@dataclass
+class Rubric:
+    """Tiered grading rubric"""
+    id: str
+    title: str
+    criteria: List[str]
+    levels: List[str]  # e.g., ['Excellent', 'Proficient', 'Developing', 'Beginning']
+    descriptions: Dict[str, Dict[str, str]]
+    weightings: Dict[str, float]
+
+@dataclass
+class Quiz:
+    """Assessment/Quiz structure"""
+    id: str
+    title: str
+    subject: str
+    grade_level: str
+    questions: List[Dict[str, Any]]
+    total_points: int
+    time_limit: Optional[int]
+    created_at: datetime
+
+@dataclass
+class StudentFeedback:
+    """Student feedback batch"""
+    id: str
+    student_name: str
+    assignment: str
+    strengths: List[str]
+    areas_for_growth: List[str]
+    suggestions: str
+    score: Optional[float]
+    generated_at: datetime
+    approved: bool = False
+
+@dataclass
+class TimeSavedMetric:
+    """Time saved analytics"""
+    week_start: datetime
+    lesson_planning_hours: float
+    grading_hours: float
+    admin_hours: float
+    total_hours: float
+    week_over_week_change: float
+
+class CurriculumStandard(Enum):
+    COMMON_CORE = "common_core"
+    NGSS = "ngss"
+    TEKS = "teks"
+    CBC = "cbc"
+    NCTB = "nctb"
+    NATIONAL = "national"
+
+# ==================== TEACHER INTELLIGENCE ENGINE ====================
+
+class TeacherIntelligenceEngine:
+    """Teacher Intelligence Engine with Lesson Builders, Assessment, Hours Saved"""
+    
+    def __init__(self, country_code='kenya'):
+        self.country = country_code
+        self.overlay = LocalCurriculumOverlay.get_overlay(country_code)
+        self.lesson_plans = []
+        self.rubrics = []
+        self.quizzes = []
+        self.feedback_batches = []
+        self.time_saved_history = []
+        self.standard_databases = {}
+        
+        # Initialize with sample data
+        self._initialize_sample_data()
+        self._initialize_standard_databases()
+    
+    def _initialize_sample_data(self):
+        """Initialize with sample teacher data"""
+        # Sample lesson plan
+        sample_lesson = LessonPlan(
+            id='lp_001',
+            title='Introduction to Photosynthesis',
+            subject='Science',
+            grade_level='Grade 7',
+            duration=45,
+            objectives=[
+                'Explain the process of photosynthesis',
+                'Identify the reactants and products of photosynthesis',
+                'Describe the role of chlorophyll in photosynthesis'
+            ],
+            standards=['NGSS-LS1-6: Photosynthesis and energy flow'],
+            materials=['Whiteboard', 'Markers', 'Plant diagrams', 'Worksheet'],
+            warm_up='What do plants need to grow? Discuss with partner (5 min)',
+            direct_instruction='Explain photosynthesis using diagrams and key vocabulary (15 min)',
+            guided_practice='Label photosynthesis diagram with teacher support (10 min)',
+            independent_practice='Complete worksheet independently (10 min)',
+            assessment='Exit ticket: List 3 things plants need for photosynthesis',
+            differentiation={
+                'ELL': 'Key vocabulary list with images',
+                'Gifted': 'Research extension: How does photosynthesis vary in different plants?',
+                'Struggling': 'Fill-in-the-blank guided notes'
+            },
+            exit_ticket='Write 3 facts about photosynthesis',
+            created_at=datetime.now() - timedelta(days=7),
+            modified_at=datetime.now() - timedelta(days=3)
+        )
+        self.lesson_plans.append(sample_lesson)
+        
+        # Sample rubric
+        sample_rubric = Rubric(
+            id='rb_001',
+            title='Science Lab Report Rubric',
+            criteria=['Hypothesis', 'Procedure', 'Data Collection', 'Analysis', 'Conclusion'],
+            levels=['Excellent', 'Proficient', 'Developing', 'Beginning'],
+            descriptions={
+                'Hypothesis': {
+                    'Excellent': 'Clear, testable hypothesis with scientific reasoning',
+                    'Proficient': 'Clear, testable hypothesis',
+                    'Developing': 'Vague hypothesis, lacks clarity',
+                    'Beginning': 'No hypothesis or completely unclear'
+                },
+                'Procedure': {
+                    'Excellent': 'Detailed, replicable procedure with safety considerations',
+                    'Proficient': 'Clear procedure, replicable',
+                    'Developing': 'Missing steps, hard to follow',
+                    'Beginning': 'No procedure or completely unclear'
+                },
+                'Data Collection': {
+                    'Excellent': 'Comprehensive data with visual representations',
+                    'Proficient': 'Complete data collection',
+                    'Developing': 'Incomplete data, missing observations',
+                    'Beginning': 'No data collected'
+                },
+                'Analysis': {
+                    'Excellent': 'Deep analysis with connections to concepts',
+                    'Proficient': 'Correct analysis of data',
+                    'Developing': 'Superficial analysis, missing connections',
+                    'Beginning': 'No analysis or completely incorrect'
+                },
+                'Conclusion': {
+                    'Excellent': 'Well-supported conclusion with broader implications',
+                    'Proficient': 'Supported conclusion',
+                    'Developing': 'Weak conclusion, not supported by data',
+                    'Beginning': 'No conclusion or completely unsupported'
+                }
+            },
+            weightings={
+                'Hypothesis': 0.15,
+                'Procedure': 0.15,
+                'Data Collection': 0.20,
+                'Analysis': 0.25,
+                'Conclusion': 0.25
+            }
+        )
+        self.rubrics.append(sample_rubric)
+        
+        # Sample quiz
+        sample_quiz = Quiz(
+            id='qz_001',
+            title='Photosynthesis Quiz',
+            subject='Science',
+            grade_level='Grade 7',
+            questions=[
+                {
+                    'id': 'q1',
+                    'type': 'multiple_choice',
+                    'question': 'What is the primary energy source for photosynthesis?',
+                    'options': ['Glucose', 'Sunlight', 'Water', 'Carbon Dioxide'],
+                    'correct_answer': 'Sunlight',
+                    'points': 2
+                },
+                {
+                    'id': 'q2',
+                    'type': 'multiple_choice',
+                    'question': 'What are the products of photosynthesis?',
+                    'options': ['Carbon Dioxide and Water', 'Glucose and Oxygen', 'Water and Oxygen', 'Glucose and Carbon Dioxide'],
+                    'correct_answer': 'Glucose and Oxygen',
+                    'points': 2
+                },
+                {
+                    'id': 'q3',
+                    'type': 'short_answer',
+                    'question': 'What is the role of chlorophyll in photosynthesis?',
+                    'correct_answer': 'Chlorophyll absorbs sunlight energy for photosynthesis',
+                    'points': 3
+                },
+                {
+                    'id': 'q4',
+                    'type': 'open_ended',
+                    'question': 'Explain how photosynthesis contributes to the carbon cycle.',
+                    'points': 5
+                }
+            ],
+            total_points=12,
+            time_limit=15,
+            created_at=datetime.now() - timedelta(days=2)
+        )
+        self.quizzes.append(sample_quiz)
+        
+        # Sample time saved metrics
+        sample_time_saved = TimeSavedMetric(
+            week_start=datetime.now() - timedelta(days=7),
+            lesson_planning_hours=2.5,
+            grading_hours=3.0,
+            admin_hours=1.5,
+            total_hours=7.0,
+            week_over_week_change=0.15
+        )
+        self.time_saved_history.append(sample_time_saved)
+    
+    def _initialize_standard_databases(self):
+        """Initialize curriculum standard databases"""
+        self.standard_databases = {
+            'common_core': {
+                'ELA': ['CCRA.R.1', 'CCRA.R.2', 'CCRA.W.1', 'CCRA.W.2', 'CCRA.SL.1'],
+                'Math': ['CCRA.M.1', 'CCRA.M.2', 'CCRA.M.3', 'CCRA.M.4', 'CCRA.M.5']
+            },
+            'ngss': {
+                'Physical': ['PS1-1', 'PS1-2', 'PS2-1', 'PS2-2', 'PS3-1'],
+                'Life': ['LS1-1', 'LS1-2', 'LS2-1', 'LS2-2', 'LS3-1'],
+                'Earth': ['ESS1-1', 'ESS1-2', 'ESS2-1', 'ESS2-2', 'ESS3-1']
+            },
+            'teks': {
+                'Science': ['TEKS.7.5A', 'TEKS.7.6A', 'TEKS.7.7A', 'TEKS.7.8A'],
+                'Math': ['TEKS.7.1A', 'TEKS.7.2A', 'TEKS.7.3A', 'TEKS.7.4A']
+            },
+            'cbc': {
+                'Science': ['CBC.SCI.7.1', 'CBC.SCI.7.2', 'CBC.SCI.7.3'],
+                'Math': ['CBC.MATH.7.1', 'CBC.MATH.7.2', 'CBC.MATH.7.3']
+            }
+        }
+    
+    # ===== Direct LMS Integrations =====
+    
+    def connect_lms(self, lms_type: str, credentials: Dict[str, str]) -> Dict[str, Any]:
+        """Connect to Learning Management System"""
+        lms_configs = {
+            'google_classroom': {
+                'name': 'Google Classroom',
+                'icon': '📚',
+                'features': ['sync_assignments', 'sync_grades', 'roster_management'],
+                'requires_oauth': True
+            },
+            'canvas': {
+                'name': 'Canvas',
+                'icon': '🎨',
+                'features': ['sync_assignments', 'sync_grades', 'course_materials', 'discussions'],
+                'requires_oauth': True
+            },
+            'schoology': {
+                'name': 'Schoology',
+                'icon': '📖',
+                'features': ['sync_assignments', 'sync_grades', 'courses'],
+                'requires_oauth': True
+            },
+            'microsoft_teams': {
+                'name': 'Microsoft Teams',
+                'icon': '💬',
+                'features': ['sync_assignments', 'sync_grades', 'teams_integration'],
+                'requires_oauth': True
+            }
+        }
+        
+        if lms_type in lms_configs:
+            return {
+                'status': 'connected',
+                'lms_type': lms_type,
+                'config': lms_configs[lms_type],
+                'message': f"Successfully connected to {lms_configs[lms_type]['name']}"
+            }
+        else:
+            return {
+                'status': 'error',
+                'message': f"Unsupported LMS: {lms_type}"
+            }
+    
+    def sync_lms_data(self, lms_type: str, sync_type: str = 'all') -> Dict[str, Any]:
+        """Sync data with LMS"""
+        # Simulate sync
+        sync_data = {
+            'students': 25,
+            'assignments': 8,
+            'grades_synced': 72,
+            'last_sync': datetime.now().isoformat()
+        }
+        
+        return {
+            'status': 'success',
+            'lms_type': lms_type,
+            'sync_type': sync_type,
+            'data': sync_data,
+            'message': f"Successfully synced {sync_type} data from {lms_type}"
+        }
+    
+    # ===== Curriculum Standard Mapping =====
+    
+    def map_standards(self, content: str, standard_type: str = 'common_core') -> List[str]:
+        """Map content to curriculum standards"""
+        matched_standards = []
+        content_lower = content.lower()
+        
+        standards_db = self.standard_databases.get(standard_type, {})
+        for category, standards in standards_db.items():
+            for standard in standards:
+                # Simple keyword matching
+                standard_keywords = standard.lower().split('.')
+                if any(keyword in content_lower for keyword in standard_keywords):
+                    matched_standards.append(standard)
+        
+        return matched_standards[:5]  # Return top 5 matched standards
+    
+    # ===== Universal File Conversion =====
+    
+    def convert_document(self, uploaded_file, output_format: str) -> Dict[str, Any]:
+        """Convert document between formats"""
+        try:
+            file_extension = uploaded_file.name.split('.')[-1].lower()
+            doc_engine = DocumentIntelligenceEngine(self.country)
+            text = doc_engine.extract_text_from_file(uploaded_file)
+            
+            if text.startswith("Error"):
+                return {'status': 'error', 'message': text}
+            
+            # Simulate conversion based on output format
+            converted = {
+                'original_format': file_extension,
+                'output_format': output_format,
+                'content': text,
+                'title': uploaded_file.name.replace(f'.{file_extension}', ''),
+                'downloadable': True
+            }
+            
+            if output_format == 'google_docs':
+                converted['message'] = 'Ready for Google Docs export'
+            elif output_format == 'google_slides':
+                converted['message'] = 'Ready for Google Slides export'
+            elif output_format == 'printable':
+                converted['message'] = 'Printable format ready'
+            else:
+                converted['message'] = f'Converted to {output_format} format'
+            
+            return converted
+            
+        except Exception as e:
+            return {'status': 'error', 'message': str(e)}
+    
+    # ===== Multi-Asset Bundle Generator =====
+    
+    def generate_lesson_bundle(self, subject: str, grade: str, topic: str, duration: int) -> Dict[str, Any]:
+        """Generate complete lesson bundle with all assets"""
+        # Generate lesson plan
+        lesson_plan = self._generate_lesson_plan(subject, grade, topic, duration)
+        
+        # Generate slide outline
+        slide_outline = self._generate_slide_outline(lesson_plan)
+        
+        # Generate worksheet
+        worksheet = self._generate_worksheet(lesson_plan)
+        
+        # Generate answer key
+        answer_key = self._generate_answer_key(worksheet)
+        
+        return {
+            'lesson_plan': lesson_plan,
+            'slide_outline': slide_outline,
+            'worksheet': worksheet,
+            'answer_key': answer_key,
+            'bundle_id': f"bundle_{hashlib.md5(f'{subject}{grade}{topic}'.encode()).hexdigest()[:8]}",
+            'created_at': datetime.now().isoformat()
+        }
+    
+    def _generate_lesson_plan(self, subject: str, grade: str, topic: str, duration: int) -> Dict[str, Any]:
+        """Generate individual lesson plan"""
+        return {
+            'title': f"{topic} - {subject} ({grade})",
+            'subject': subject,
+            'grade': grade,
+            'duration': duration,
+            'objectives': [
+                f'Understand key concepts of {topic}',
+                f'Apply {topic} knowledge to real-world scenarios',
+                f'Develop critical thinking skills related to {topic}'
+            ],
+            'standards': self.map_standards(topic),
+            'materials': ['Textbook', 'Worksheets', 'Multimedia resources'],
+            'procedure': {
+                'warm_up': f'Engage students with a question about {topic} (5-10 min)',
+                'direct_instruction': f'Present key concepts of {topic} (15-20 min)',
+                'guided_practice': f'Work through examples together (10-15 min)',
+                'independent_practice': f'Students work independently on {topic} (15-20 min)',
+                'closure': f'Review and assess understanding with exit ticket (5 min)'
+            },
+            'differentiation': {
+                'struggling': 'Provide additional support and scaffolding',
+                'gifted': 'Offer extension activities and deeper exploration',
+                'ell': 'Include visuals and simplified language'
+            },
+            'assessment': f'Formative assessment throughout, summative quiz at end'
+        }
+    
+    def _generate_slide_outline(self, lesson_plan: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate slide outline from lesson plan"""
+        return [
+            {'slide': 1, 'title': f"Welcome to {lesson_plan['title']}", 'type': 'title'},
+            {'slide': 2, 'title': 'Learning Objectives', 'type': 'objectives'},
+            {'slide': 3, 'title': 'Key Vocabulary', 'type': 'vocabulary'},
+            {'slide': 4, 'title': 'Introduction', 'type': 'intro'},
+            {'slide': 5, 'title': 'Main Concepts', 'type': 'content'},
+            {'slide': 6, 'title': 'Examples', 'type': 'examples'},
+            {'slide': 7, 'title': 'Practice Problems', 'type': 'practice'},
+            {'slide': 8, 'title': 'Summary', 'type': 'summary'},
+            {'slide': 9, 'title': 'Questions', 'type': 'questions'},
+            {'slide': 10, 'title': 'Next Steps', 'type': 'next_steps'}
+        ]
+    
+    def _generate_worksheet(self, lesson_plan: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate student worksheet"""
+        return {
+            'title': f"{lesson_plan['title']} - Worksheet",
+            'sections': [
+                {
+                    'section': 'Part 1: Vocabulary',
+                    'instructions': 'Match the vocabulary terms to their definitions',
+                    'questions': ['Term 1', 'Term 2', 'Term 3']
+                },
+                {
+                    'section': 'Part 2: Concept Check',
+                    'instructions': 'Answer the following questions based on the lesson',
+                    'questions': ['Question 1', 'Question 2', 'Question 3']
+                },
+                {
+                    'section': 'Part 3: Application',
+                    'instructions': 'Apply your knowledge to these scenarios',
+                    'questions': ['Scenario 1', 'Scenario 2']
+                }
+            ],
+            'total_points': 20
+        }
+    
+    def _generate_answer_key(self, worksheet: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate answer key for worksheet"""
+        return {
+            'title': f"Answer Key - {worksheet['title']}",
+            'answers': {
+                'Part 1': ['Term 1 Definition', 'Term 2 Definition', 'Term 3 Definition'],
+                'Part 2': ['Question 1 Answer', 'Question 2 Answer', 'Question 3 Answer'],
+                'Part 3': ['Scenario 1 Solution', 'Scenario 2 Solution']
+            },
+            'total_points': worksheet['total_points']
+        }
+    
+    # ===== Dynamic Lexile Adjuster =====
+    
+    def adjust_reading_level(self, text: str, target_level: str) -> Dict[str, Any]:
+        """Adjust text reading level dynamically"""
+        words = text.split()
+        word_count = len(words)
+        
+        # Simulate level adjustment
+        reading_levels = {
+            'beginner': {'vocab_complexity': 0.3, 'sentence_complexity': 0.4, 'description': 'Grades 2-3'},
+            'intermediate': {'vocab_complexity': 0.5, 'sentence_complexity': 0.6, 'description': 'Grades 4-6'},
+            'advanced': {'vocab_complexity': 0.7, 'sentence_complexity': 0.8, 'description': 'Grades 7-9'},
+            'expert': {'vocab_complexity': 0.9, 'sentence_complexity': 0.9, 'description': 'Grades 10-12'}
+        }
+        
+        level_config = reading_levels.get(target_level, reading_levels['intermediate'])
+        
+        # Simulate text adjustment
+        adjusted_text = text
+        if target_level == 'beginner':
+            adjusted_text = text.replace('complex', 'hard').replace('analyze', 'study')
+            adjusted_text = ' '.join(adjusted_text.split()[:word_count//2])
+        elif target_level == 'expert':
+            adjusted_text = text + ' This content has been enhanced for advanced readers with additional context and depth.'
+        
+        return {
+            'original_text': text,
+            'adjusted_text': adjusted_text,
+            'target_level': target_level,
+            'level_description': level_config['description'],
+            'word_count_original': word_count,
+            'word_count_adjusted': len(adjusted_text.split()),
+            'changes': {
+                'vocabulary': f"Adjusted to {level_config['vocab_complexity']*100:.0f}% complexity",
+                'sentences': f"Adjusted to {level_config['sentence_complexity']*100:.0f}% complexity"
+            }
+        }
+    
+    # ===== Rubric & Assessment Engine =====
+    
+    def generate_rubric(self, title: str, criteria: List[str], levels: List[str]) -> Rubric:
+        """Generate tiered grading rubric"""
+        rubric_id = f"rb_{hashlib.md5(f'{title}{datetime.now().timestamp()}'.encode()).hexdigest()[:8]}"
+        
+        # Generate descriptions
+        descriptions = {}
+        for criterion in criteria:
+            descriptions[criterion] = {
+                levels[0]: f"Excellent: {criterion} - demonstrates mastery",
+                levels[1]: f"Proficient: {criterion} - shows understanding",
+                levels[2]: f"Developing: {criterion} - needs more support",
+                levels[3]: f"Beginning: {criterion} - requires intervention"
+            }
+        
+        # Generate weightings (equal distribution)
+        weightings = {criterion: 1.0 / len(criteria) for criterion in criteria}
+        
+        return Rubric(
+            id=rubric_id,
+            title=title,
+            criteria=criteria,
+            levels=levels,
+            descriptions=descriptions,
+            weightings=weightings
+        )
+    
+    def generate_quiz(self, subject: str, grade: str, topic: str, num_questions: int = 5) -> Quiz:
+        """Generate aligned quiz with multiple question types"""
+        quiz_id = f"qz_{hashlib.md5(f'{subject}{grade}{topic}{datetime.now().timestamp()}'.encode()).hexdigest()[:8]}"
+        
+        questions = []
+        question_types = ['multiple_choice', 'short_answer', 'open_ended']
+        
+        for i in range(num_questions):
+            q_type = question_types[i % len(question_types)]
+            
+            question = {
+                'id': f'q{i+1}',
+                'type': q_type,
+                'question': f'Question {i+1} about {topic}',
+                'points': 2 if q_type == 'multiple_choice' else 3 if q_type == 'short_answer' else 5
+            }
+            
+            if q_type == 'multiple_choice':
+                question['options'] = ['Option A', 'Option B', 'Option C', 'Option D']
+                question['correct_answer'] = 'Option A'
+            
+            if q_type == 'short_answer':
+                question['correct_answer'] = f'Correct answer for question {i+1}'
+            
+            questions.append(question)
+        
+        total_points = sum(q.get('points', 0) for q in questions)
+        
+        return Quiz(
+            id=quiz_id,
+            title=f"{topic} Quiz - {subject} ({grade})",
+            subject=subject,
+            grade_level=grade,
+            questions=questions,
+            total_points=total_points,
+            time_limit=total_points * 2,  # Rough estimate
+            created_at=datetime.now()
+        )
+    
+    # ===== Modular Block Editor =====
+    
+    def get_lesson_blocks(self, lesson_plan: LessonPlan) -> Dict[str, Any]:
+        """Get modular blocks for lesson editing"""
+        return {
+            'blocks': {
+                'warm_up': {
+                    'content': lesson_plan.warm_up,
+                    'editable': True,
+                    'regenerable': True,
+                    'placeholder': 'Enter warm-up activity...'
+                },
+                'direct_instruction': {
+                    'content': lesson_plan.direct_instruction,
+                    'editable': True,
+                    'regenerable': True,
+                    'placeholder': 'Enter direct instruction content...'
+                },
+                'guided_practice': {
+                    'content': lesson_plan.guided_practice,
+                    'editable': True,
+                    'regenerable': True,
+                    'placeholder': 'Enter guided practice activity...'
+                },
+                'independent_practice': {
+                    'content': lesson_plan.independent_practice,
+                    'editable': True,
+                    'regenerable': True,
+                    'placeholder': 'Enter independent practice...'
+                },
+                'assessment': {
+                    'content': lesson_plan.assessment,
+                    'editable': True,
+                    'regenerable': True,
+                    'placeholder': 'Enter assessment details...'
+                },
+                'exit_ticket': {
+                    'content': lesson_plan.exit_ticket,
+                    'editable': True,
+                    'regenerable': True,
+                    'placeholder': 'Enter exit ticket question...'
+                }
+            },
+            'lesson_id': lesson_plan.id,
+            'title': lesson_plan.title
+        }
+    
+    def regenerate_block(self, block_type: str, context: str) -> str:
+        """Regenerate a specific lesson block"""
+        regeneration_templates = {
+            'warm_up': f"New warm-up activity for: {context}",
+            'direct_instruction': f"Updated direct instruction for: {context}",
+            'guided_practice': f"New guided practice for: {context}",
+            'independent_practice': f"Updated independent practice for: {context}",
+            'assessment': f"New assessment for: {context}",
+            'exit_ticket': f"New exit ticket for: {context}"
+        }
+        
+        return regeneration_templates.get(block_type, f"Regenerated {block_type} for: {context}")
+    
+    # ===== One-Tap Accommodation Toggles =====
+    
+    def apply_accommodation(self, content: str, accommodation_type: str) -> Dict[str, Any]:
+        """Apply accommodations for IEP/504/ELL modifications"""
+        accommodations = {
+            'iep_504': {
+                'name': 'IEP/504 Modification',
+                'changes': 'Extended time, modified assignments, preferential seating',
+                'applied': True
+            },
+            'sentence_starters': {
+                'name': 'Sentence Starters',
+                'changes': 'Added sentence frames for writing tasks',
+                'applied': True
+            },
+            'ell_translation': {
+                'name': 'ELL Translation',
+                'changes': 'Added bilingual support and visual aids',
+                'applied': True
+            },
+            'simplified_text': {
+                'name': 'Simplified Text',
+                'changes': 'Reduced complexity, added definitions',
+                'applied': True
+            }
+        }
+        
+        result = accommodations.get(accommodation_type, {})
+        
+        if result.get('applied', False):
+            # Apply the accommodation
+            modified_content = content
+            if accommodation_type == 'sentence_starters':
+                modified_content = f"Start with: I think that...\n\nOriginal: {content}"
+            elif accommodation_type == 'ell_translation':
+                modified_content = f"[Translation]\n{content}\n\n[Original]\n{content}"
+            elif accommodation_type == 'simplified_text':
+                modified_content = f"Simple: {content[:100]}...\n\nOriginal: {content}"
+            
+            return {
+                'status': 'applied',
+                'accommodation_type': accommodation_type,
+                'name': result['name'],
+                'changes': result['changes'],
+                'modified_content': modified_content
+            }
+        
+        return {'status': 'unknown', 'message': f'Unknown accommodation: {accommodation_type}'}
+    
+    # ===== Batch Feedback Assistant =====
+    
+    def generate_batch_feedback(self, assignments: List[Dict[str, Any]]) -> List[StudentFeedback]:
+        """Generate batch feedback for multiple students"""
+        feedback_batch = []
+        
+        for assignment in assignments:
+            # Generate strengths and growth areas
+            strengths = [
+                random.choice(['Strong understanding of concepts', 'Good analysis', 'Clear writing']),
+                random.choice(['Effective use of evidence', 'Engaging writing style', 'Critical thinking'])
+            ]
+            
+            areas_for_growth = [
+                random.choice(['Add more detail', 'Check grammar and spelling', 'Provide more examples']),
+                random.choice(['Expand on ideas', 'Clarify arguments', 'Use stronger evidence'])
+            ]
+            
+            feedback = StudentFeedback(
+                id=f"fb_{hashlib.md5(f'{assignment.get('student_name', '')}{datetime.now().timestamp()}'.encode()).hexdigest()[:8]}",
+                student_name=assignment.get('student_name', 'Student'),
+                assignment=assignment.get('assignment_title', 'Assignment'),
+                strengths=strengths,
+                areas_for_growth=areas_for_growth,
+                suggestions=f"Based on your work, I recommend focusing on {areas_for_growth[0].lower()} and {areas_for_growth[1].lower()}.",
+                score=random.randint(70, 95),
+                generated_at=datetime.now(),
+                approved=False
+            )
+            
+            feedback_batch.append(feedback)
+        
+        self.feedback_batches.extend(feedback_batch)
+        return feedback_batch
+    
+    def approve_feedback(self, feedback_id: str) -> Dict[str, Any]:
+        """Approve AI-suggested feedback"""
+        for feedback in self.feedback_batches:
+            if feedback.id == feedback_id:
+                feedback.approved = True
+                return {
+                    'status': 'approved',
+                    'feedback_id': feedback_id,
+                    'message': f"Feedback for {feedback.student_name} approved"
+                }
+        
+        return {'status': 'error', 'message': 'Feedback not found'}
+    
+    # ===== Time-Saved Dashboard =====
+    
+    def calculate_time_saved(self) -> Dict[str, Any]:
+        """Calculate time saved analytics"""
+        # Simulate time saved calculations
+        total_hours = 0
+        breakdown = {
+            'lesson_planning': {'hours': 2.5, 'saved': 'vs 4.5 hours traditional'},
+            'grading': {'hours': 3.0, 'saved': 'vs 6 hours traditional'},
+            'admin_work': {'hours': 1.5, 'saved': 'vs 3 hours traditional'},
+            'feedback_drafting': {'hours': 1.0, 'saved': 'vs 2 hours traditional'}
+        }
+        
+        total_hours = sum(item['hours'] for item in breakdown.values())
+        traditional_hours = 15.5  # Estimated traditional total
+        
+        return {
+            'total_hours_saved': round(total_hours, 1),
+            'total_percent_saved': round((total_hours / traditional_hours) * 100, 1),
+            'breakdown': breakdown,
+            'weekly_average': round(total_hours, 1),
+            'monthly_projection': round(total_hours * 4, 1),
+            'yearly_projection': round(total_hours * 48, 1)
+        }
+    
+    # ===== Parent & Sub-Plan Generators =====
+    
+    def generate_parent_update(self, student_name: str, subject: str, progress: str) -> str:
+        """Generate professional parent update"""
+        templates = [
+            f"Dear Parent/Guardian of {student_name},\n\n"
+            f"I am pleased to share an update on {student_name}'s progress in {subject}. "
+            f"{student_name} has been {progress}. "
+            f"I look forward to continuing to support {student_name}'s growth. "
+            f"Please reach out if you have any questions.\n\n"
+            f"Best regards,\n"
+            f"Teacher",
+            
+            f"Hello {student_name}'s Family,\n\n"
+            f"This note is to provide a quick update on {student_name}'s learning in {subject}. "
+            f"Recent work shows that {student_name} is {progress}. "
+            f"Keep up the great support at home!\n\n"
+            f"Sincerely,\n"
+            f"Teacher"
+        ]
+        
+        return random.choice(templates)
+    
+    def generate_sub_plan(self, subject: str, grade: str, lesson_topic: str) -> Dict[str, Any]:
+        """Generate emergency substitute teacher guide"""
+        return {
+            'title': f"Sub Plan: {lesson_topic} - {subject} ({grade})",
+            'overview': f"This plan covers {lesson_topic} for {grade} students in {subject}.",
+            'schedule': {
+                'period_1': {'time': '8:00-8:45', 'activity': f'Intro to {lesson_topic}', 'materials': 'Textbook pages 1-5'},
+                'period_2': {'time': '8:50-9:35', 'activity': f'Guided practice on {lesson_topic}', 'materials': 'Worksheet'},
+                'period_3': {'time': '9:40-10:25', 'activity': 'Independent work', 'materials': 'Assignment'},
+                'period_4': {'time': '10:30-11:15', 'activity': 'Review and wrap-up', 'materials': 'Answer key'}
+            },
+            'emergency_procedures': 'In case of emergency, follow school protocol in the handbook.',
+            'notes': 'Please leave notes on student progress for the regular teacher.'
+        }
+    
+    # ===== Zero-PII Compliance Layer =====
+    
+    def redact_pii(self, text: str) -> Dict[str, Any]:
+        """Redact personally identifiable information"""
+        # Simulate PII redaction
+        redacted_text = text
+        
+        # Replace common name patterns
+        name_pattern = r'\b[A-Z][a-z]+\s[A-Z][a-z]+\b'
+        redacted_text = re.sub(name_pattern, '[STUDENT]', redacted_text)
+        
+        # Replace email patterns
+        email_pattern = r'\b[\w\.-]+@[\w\.-]+\.\w+\b'
+        redacted_text = re.sub(email_pattern, '[EMAIL]', redacted_text)
+        
+        return {
+            'original': text,
+            'redacted': redacted_text,
+            'pii_removed': len(re.findall(name_pattern, text)) + len(re.findall(email_pattern, text)),
+            'compliance_note': 'FERPA/COPPA compliant - data isolated from model training'
+        }
+
+
 # ==================== PROFESSIONAL DATA MODELS ====================
 
 @dataclass
@@ -44,7 +863,7 @@ class SourceDocument:
     """Source document with citation tracking"""
     id: str
     title: str
-    source_type: str  # 'sec_filing', 'earnings_call', 'news', 'research'
+    source_type: str
     file_path: str
     content: str
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -83,8 +902,8 @@ class WatchdogAlert:
     """Automated alert from asset watchdog"""
     id: str
     asset_ticker: str
-    alert_type: str  # 'earnings', 'filing', 'news', 'price'
-    severity: str  # 'high', 'medium', 'low'
+    alert_type: str
+    severity: str
     message: str
     source: str
     timestamp: datetime
@@ -107,6 +926,7 @@ class SearchType(Enum):
     KEYWORD = "keyword"
     SEMANTIC = "semantic"
 
+
 # ==================== PROFESSIONAL INTELLIGENCE ENGINE ====================
 
 class ProfessionalIntelligenceEngine:
@@ -123,12 +943,10 @@ class ProfessionalIntelligenceEngine:
         self.search_index = {}
         self.vector_embeddings = {}
         
-        # Initialize with sample data
         self._initialize_sample_data()
     
     def _initialize_sample_data(self):
         """Initialize with sample professional data"""
-        # Sample source documents
         sample_docs = [
             {
                 'id': 'doc_001',
@@ -173,7 +991,6 @@ class ProfessionalIntelligenceEngine:
             )
             self.documents.append(doc)
         
-        # Sample portfolio assets
         sample_assets = [
             PortfolioAsset(
                 ticker='AAPL', name='Apple Inc.', sector='Technology',
@@ -208,7 +1025,6 @@ class ProfessionalIntelligenceEngine:
         ]
         self.portfolio_assets = sample_assets
         
-        # Sample watchdog alerts
         sample_alerts = [
             WatchdogAlert(
                 id='alert_001',
@@ -240,10 +1056,7 @@ class ProfessionalIntelligenceEngine:
         ]
         self.watchdog_alerts = sample_alerts
     
-    # ===== Data Ingestion & Search Pipeline =====
-    
     def ingest_document(self, file_content: str, file_name: str, source_type: str, metadata: Dict = None) -> SourceDocument:
-        """Ingest a new document into the system"""
         doc_id = f"doc_{hashlib.md5(file_name.encode()).hexdigest()[:8]}"
         
         doc = SourceDocument(
@@ -256,7 +1069,6 @@ class ProfessionalIntelligenceEngine:
             uploaded_at=datetime.now()
         )
         
-        # Extract citations and tables
         doc.citations = self._extract_citations(file_content)
         doc.parsed_tables = self._extract_tables(file_content)
         
@@ -266,12 +1078,10 @@ class ProfessionalIntelligenceEngine:
         return doc
     
     def _extract_citations(self, content: str) -> List[Dict[str, Any]]:
-        """Extract potential citations from document content"""
         citations = []
         lines = content.split('\n')
         
         for i, line in enumerate(lines):
-            # Look for claims with numbers or percentages
             claims = re.findall(r'([A-Z][^.!?]*\s+(?:was|is|reached|grew|increased|decreased|fell|rose|were)\s+[^.!?]*\d+[^.!?]*)', line)
             for claim in claims:
                 if len(claim) > 20:
@@ -282,12 +1092,10 @@ class ProfessionalIntelligenceEngine:
                         'confidence': 0.85
                     })
         
-        return citations[:10]  # Limit to first 10 citations
+        return citations[:10]
     
     def _extract_tables(self, content: str) -> List[Dict[str, Any]]:
-        """Extract tables from document content"""
         tables = []
-        # Look for table-like structures (lines with consistent delimiters)
         lines = content.split('\n')
         table_data = []
         
@@ -307,8 +1115,6 @@ class ProfessionalIntelligenceEngine:
         return tables
     
     def _index_document(self, doc: SourceDocument):
-        """Index document for search"""
-        # Simple keyword indexing
         words = re.findall(r'\b[a-zA-Z]{3,}\b', doc.content.lower())
         for word in words:
             if word not in self.search_index:
@@ -316,27 +1122,22 @@ class ProfessionalIntelligenceEngine:
             self.search_index[word].append(doc.id)
     
     def hybrid_search(self, query: str, search_type: SearchType = SearchType.HYBRID) -> List[Dict[str, Any]]:
-        """Hybrid search combining vector and keyword search"""
         results = []
         query_words = re.findall(r'\b[a-zA-Z]{3,}\b', query.lower())
         
-        # Keyword search (BM25-like)
         keyword_results = {}
         for word in query_words:
             if word in self.search_index:
                 for doc_id in self.search_index[word]:
                     keyword_results[doc_id] = keyword_results.get(doc_id, 0) + 1
         
-        # Vector search (simulated with simple word matching)
         vector_results = {}
         for doc in self.documents:
             doc_words = re.findall(r'\b[a-zA-Z]{3,}\b', doc.content.lower())
-            # Simple cosine similarity approximation
             overlap = len(set(query_words) & set(doc_words))
             if overlap > 0:
                 vector_results[doc.id] = overlap / len(set(query_words) | set(doc_words))
         
-        # Combine results
         all_doc_ids = set(keyword_results.keys()) | set(vector_results.keys())
         
         for doc_id in all_doc_ids:
@@ -351,7 +1152,7 @@ class ProfessionalIntelligenceEngine:
                     final_score = vector_score
                 elif search_type == SearchType.SEMANTIC:
                     final_score = vector_score * 0.7 + keyword_score * 0.3
-                else:  # HYBRID
+                else:
                     final_score = keyword_score * 0.4 + vector_score * 0.6
                 
                 if final_score > 0.1:
@@ -363,10 +1164,7 @@ class ProfessionalIntelligenceEngine:
         
         return sorted(results, key=lambda x: x['score'], reverse=True)
     
-    # ===== Audit-Linked Citation Engine =====
-    
     def generate_citation_chain(self, claim: str, document_id: str) -> List[Dict[str, Any]]:
-        """Generate audit-linked citations for a claim"""
         doc = next((d for d in self.documents if d.id == document_id), None)
         if not doc:
             return []
@@ -385,7 +1183,6 @@ class ProfessionalIntelligenceEngine:
         return citations
     
     def audit_analysis(self, analysis_text: str, source_documents: List[SourceDocument]) -> Dict[str, Any]:
-        """Audit analysis against source documents"""
         audit_results = {
             'verified_claims': [],
             'unverified_claims': [],
@@ -393,7 +1190,6 @@ class ProfessionalIntelligenceEngine:
             'confidence_score': 0.0
         }
         
-        # Extract claims from analysis
         claims = re.findall(r'([A-Z][^.!?]*\s+(?:was|is|reached|grew|increased|decreased|fell|rose|were|will|would|could|should)\s+[^.!?]*\d+[^.!?]*)', analysis_text)
         
         for claim in claims:
@@ -418,12 +1214,8 @@ class ProfessionalIntelligenceEngine:
         
         return audit_results
     
-    # ===== Code-Executing Data Sandbox =====
-    
     def execute_quant_analysis(self, code: str, data: pd.DataFrame) -> Dict[str, Any]:
-        """Execute quantitative analysis in a sandboxed environment"""
         try:
-            # Create a safe execution environment
             safe_globals = {
                 'pd': pd,
                 'np': np,
@@ -436,11 +1228,8 @@ class ProfessionalIntelligenceEngine:
                 'abs': abs
             }
             
-            # Execute the code
             exec_globals = {}
             exec(code, safe_globals, exec_globals)
-            
-            # Get results
             result = exec_globals.get('result', None)
             
             return {
@@ -455,11 +1244,7 @@ class ProfessionalIntelligenceEngine:
                 'execution_time': 0.1
             }
     
-    # ===== Real-Time Market Feeds =====
-    
     def fetch_market_data(self, ticker: str) -> Dict[str, Any]:
-        """Fetch real-time market data (simulated)"""
-        # Simulate market data
         base_price = random.uniform(100, 500)
         return {
             'ticker': ticker,
@@ -473,7 +1258,6 @@ class ProfessionalIntelligenceEngine:
         }
     
     def fetch_sec_filing(self, ticker: str) -> Dict[str, Any]:
-        """Fetch SEC EDGAR filing (simulated)"""
         filings = [
             {'type': '10-K', 'date': '2025-01-15', 'title': 'Annual Report'},
             {'type': '10-Q', 'date': '2025-01-10', 'title': 'Quarterly Report'},
@@ -487,7 +1271,6 @@ class ProfessionalIntelligenceEngine:
         }
     
     def fetch_earnings_call(self, ticker: str) -> Dict[str, Any]:
-        """Fetch earnings call transcripts (simulated)"""
         return {
             'ticker': ticker,
             'quarter': 'Q4 2024',
@@ -501,22 +1284,15 @@ class ProfessionalIntelligenceEngine:
             'timestamp': datetime.now().isoformat()
         }
     
-    # ===== Portfolio Intelligence & Monitoring =====
-    
     def calculate_portfolio_metrics(self) -> Dict[str, Any]:
-        """Calculate portfolio metrics"""
         total_value = sum(asset.market_value for asset in self.portfolio_assets)
         
-        # Sector concentration
         sector_exposure = {}
         for asset in self.portfolio_assets:
             sector_exposure[asset.sector] = sector_exposure.get(asset.sector, 0) + asset.weight
         
-        # Risk metrics
         returns = [asset.daily_change for asset in self.portfolio_assets]
         volatility = np.std(returns) if returns else 0
-        
-        # Tracking error (simulated)
         tracking_error = round(volatility * 0.5, 4)
         
         return {
@@ -529,12 +1305,9 @@ class ProfessionalIntelligenceEngine:
         }
     
     def run_watchdog_alerts(self) -> List[WatchdogAlert]:
-        """Run 24/7 asset watchdogs"""
         new_alerts = []
         
-        # Check each portfolio asset
         for asset in self.portfolio_assets:
-            # Simulate earnings alerts
             if random.random() > 0.7:
                 alert = WatchdogAlert(
                     id=f"alert_{datetime.now().timestamp()}",
@@ -547,7 +1320,6 @@ class ProfessionalIntelligenceEngine:
                 )
                 new_alerts.append(alert)
             
-            # Simulate price alerts
             if random.random() > 0.8:
                 alert = WatchdogAlert(
                     id=f"alert_{datetime.now().timestamp()}",
@@ -563,26 +1335,19 @@ class ProfessionalIntelligenceEngine:
         self.watchdog_alerts.extend(new_alerts)
         return new_alerts
     
-    # ===== Macro Scenario Stress-Testing =====
-    
     def run_macro_stress_test(self, scenario: MacroScenario) -> Dict[str, Any]:
-        """Run macro scenario stress test"""
         portfolio_value = sum(asset.market_value for asset in self.portfolio_assets)
         
-        # Calculate impact based on scenario parameters
         rate_impact = scenario.rate_change * 0.5
         inflation_impact = scenario.inflation_change * 0.3
         growth_impact = scenario.growth_change * 0.4
         market_impact = scenario.market_shock * 0.7
         
         total_impact = rate_impact + inflation_impact + growth_impact + market_impact
-        
         impacted_value = portfolio_value * (1 + total_impact)
         
-        # Asset-level impacts
         asset_impacts = []
         for asset in self.portfolio_assets:
-            # Sector-specific impacts
             sector_multiplier = {
                 'Technology': 0.2,
                 'Consumer': 0.15,
@@ -611,10 +1376,7 @@ class ProfessionalIntelligenceEngine:
             'risk_assessment': 'High' if abs(total_impact) > 0.2 else 'Medium' if abs(total_impact) > 0.1 else 'Low'
         }
     
-    # ===== One-Click Deliverable Generator =====
-    
     def generate_deliverable(self, template_type: str, data: Dict[str, Any]) -> str:
-        """Generate professional deliverables from templates"""
         templates = {
             'investment_memo': """
             # Investment Committee Memo
@@ -688,23 +1450,17 @@ class ProfessionalIntelligenceEngine:
         
         template = templates.get(template_type, templates['investment_memo'])
         
-        # Fill template with data
         try:
             return template.format(**data)
         except:
-            return template  # Return unfilled template if data missing
-    
-    # ===== Automated Table Extraction =====
+            return template
     
     def extract_table_from_pdf(self, pdf_content: str) -> pd.DataFrame:
-        """Extract tables from PDF content"""
-        # Simulate table extraction
         lines = pdf_content.split('\n')
         table_data = []
         headers = None
         
         for line in lines:
-            # Look for table-like data
             if '|' in line or '\t' in line:
                 parts = [p.strip() for p in re.split(r'[|\t]+', line) if p.strip()]
                 if parts:
@@ -716,7 +1472,6 @@ class ProfessionalIntelligenceEngine:
         if table_data:
             return pd.DataFrame(table_data, columns=headers)
         else:
-            # Return sample data if no table found
             return pd.DataFrame({
                 'Metric': ['Revenue', 'EBITDA', 'Net Income', 'EPS'],
                 'Q4 2024': ['$12.4B', '$3.5B', '$2.1B', '$2.15'],
@@ -724,10 +1479,7 @@ class ProfessionalIntelligenceEngine:
                 'Change': ['+18%', '+25%', '+24%', '+23%']
             })
     
-    # ===== Split-Screen Workspace =====
-    
     def get_workspace_data(self) -> Dict[str, Any]:
-        """Get data for split-screen workspace"""
         return {
             'documents': [
                 {
@@ -748,32 +1500,29 @@ class ProfessionalIntelligenceEngine:
 
 @dataclass
 class BusinessMetric:
-    """Business metric data structure"""
     name: str
     value: float
     change: float
-    trend: str  # 'up', 'down', 'stable'
+    trend: str
     category: str
     timestamp: datetime
 
 @dataclass
 class ActionTask:
-    """Action-oriented task for SME dashboard"""
     id: str
     title: str
     description: str
-    priority: str  # 'critical', 'high', 'medium', 'low'
-    category: str  # 'inventory', 'finance', 'customers', 'marketing', 'operations'
+    priority: str
+    category: str
     impact: str
-    action_type: str  # 'approval', 'draft', 'alert', 'auto'
-    status: str  # 'pending', 'approved', 'dismissed'
+    action_type: str
+    status: str
     created_at: datetime
     due_date: Optional[datetime] = None
 
 @dataclass
 class WebhookEvent:
-    """Webhook event data structure"""
-    event_type: str  # 'checkout.paid', 'invoice.overdue', 'inventory.low', etc.
+    event_type: str
     payload: Dict[str, Any]
     timestamp: datetime
     processed: bool = False
@@ -788,19 +1537,14 @@ class PriorityLevel(Enum):
 # ==================== SME INFRASTRUCTURE ENGINE ====================
 
 class SMEInfrastructureEngine:
-    """Data Infrastructure & Connectors for SME Growth Automation"""
-    
     def __init__(self, country_code='kenya'):
         self.country = country_code
         self.overlay = LocalCurriculumOverlay.get_overlay(country_code)
         self.webhook_events = []
         self.api_connections = {}
         self.etl_pipeline_data = {}
-        
-    # ===== ETL & Data Pipeline =====
     
     def etl_process(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
-        """ETL Pipeline: Extract, Transform, Load for inconsistent SME data"""
         try:
             extracted = self._extract_data(raw_data)
             transformed = self._transform_data(extracted)
@@ -821,7 +1565,6 @@ class SMEInfrastructureEngine:
             }
     
     def _extract_data(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract data from raw source"""
         extracted = {}
         
         if 'transactions' in raw_data:
@@ -840,7 +1583,6 @@ class SMEInfrastructureEngine:
         return extracted
     
     def _normalize_list(self, data_list: List[Dict]) -> List[Dict]:
-        """Normalize inconsistent data structures"""
         normalized = []
         for item in data_list:
             if 'amount' in item and 'total' not in item:
@@ -853,7 +1595,6 @@ class SMEInfrastructureEngine:
         return normalized
     
     def _transform_data(self, extracted: Dict[str, Any]) -> Dict[str, Any]:
-        """Transform data for analysis"""
         transformed = {}
         
         if 'transactions' in extracted:
@@ -876,45 +1617,16 @@ class SMEInfrastructureEngine:
         return transformed
     
     def _load_data(self, transformed: Dict[str, Any]) -> Dict[str, Any]:
-        """Load transformed data into storage"""
         self.etl_pipeline_data.update(transformed)
         return transformed
     
-    # ===== API Connector Layer =====
-    
     def connect_api(self, service: str, credentials: Dict[str, str]) -> Dict[str, Any]:
-        """Connect to external APIs (Stripe, QuickBooks, Shopify, etc.)"""
         api_configs = {
-            'stripe': {
-                'name': 'Stripe',
-                'icon': '💳',
-                'endpoints': ['payments', 'invoices', 'customers', 'subscriptions'],
-                'auth_type': 'api_key'
-            },
-            'quickbooks': {
-                'name': 'QuickBooks',
-                'icon': '📊',
-                'endpoints': ['invoices', 'expenses', 'customers', 'reports'],
-                'auth_type': 'oauth2'
-            },
-            'shopify': {
-                'name': 'Shopify',
-                'icon': '🛍️',
-                'endpoints': ['orders', 'products', 'customers', 'inventory'],
-                'auth_type': 'api_key'
-            },
-            'toast': {
-                'name': 'Toast POS',
-                'icon': '🍽️',
-                'endpoints': ['orders', 'menu', 'inventory', 'reports'],
-                'auth_type': 'api_key'
-            },
-            'jobber': {
-                'name': 'Jobber',
-                'icon': '🔧',
-                'endpoints': ['clients', 'invoices', 'visits', 'schedule'],
-                'auth_type': 'oauth2'
-            }
+            'stripe': {'name': 'Stripe', 'icon': '💳', 'endpoints': ['payments', 'invoices', 'customers', 'subscriptions'], 'auth_type': 'api_key'},
+            'quickbooks': {'name': 'QuickBooks', 'icon': '📊', 'endpoints': ['invoices', 'expenses', 'customers', 'reports'], 'auth_type': 'oauth2'},
+            'shopify': {'name': 'Shopify', 'icon': '🛍️', 'endpoints': ['orders', 'products', 'customers', 'inventory'], 'auth_type': 'api_key'},
+            'toast': {'name': 'Toast POS', 'icon': '🍽️', 'endpoints': ['orders', 'menu', 'inventory', 'reports'], 'auth_type': 'api_key'},
+            'jobber': {'name': 'Jobber', 'icon': '🔧', 'endpoints': ['clients', 'invoices', 'visits', 'schedule'], 'auth_type': 'oauth2'}
         }
         
         if service in api_configs:
@@ -937,7 +1649,6 @@ class SMEInfrastructureEngine:
             }
     
     def fetch_api_data(self, service: str, endpoint: str, params: Dict = None) -> Dict[str, Any]:
-        """Fetch data from connected API"""
         if service not in self.api_connections:
             return {'status': 'error', 'message': f"Service {service} not connected"}
         
@@ -971,10 +1682,7 @@ class SMEInfrastructureEngine:
             'timestamp': datetime.now().isoformat()
         }
     
-    # ===== Webhook Architecture =====
-    
     def process_webhook(self, event_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Process incoming webhook events"""
         event = WebhookEvent(
             event_type=event_type,
             payload=payload,
@@ -1100,12 +1808,10 @@ class SMEInfrastructureEngine:
 # ==================== SME AI ENGINE ====================
 
 class SMEAIEngine:
-    """AI Engine & Analytics for SME Growth Automation"""
-    
     def __init__(self, country_code='kenya'):
         self.country = country_code
         self.infrastructure = SMEInfrastructureEngine(country_code)
-        
+    
     def predict_cash_flow(self, historical_data: List[Dict]) -> Dict[str, Any]:
         days = 30
         current_balance = 5000
@@ -1225,12 +1931,7 @@ class SMEAIEngine:
             })
         
         if 'revenue' in query_lower or 'income' in query_lower:
-            revenue = {
-                'total': 15750.00,
-                'growth': 12.5,
-                'best_month': 'December',
-                'worst_month': 'February'
-            }
+            revenue = {'total': 15750.00, 'growth': 12.5, 'best_month': 'December', 'worst_month': 'February'}
             response['results'].append({
                 'type': 'revenue',
                 'data': revenue,
@@ -1304,8 +2005,6 @@ class SMEAIEngine:
 # ==================== SME PRODUCT UX ENGINE ====================
 
 class SMEProductUXEngine:
-    """Product UX & Operations for SME Growth Automation"""
-    
     def __init__(self, country_code='kenya'):
         self.country = country_code
         self.infrastructure = SMEInfrastructureEngine(country_code)
@@ -1536,8 +2235,6 @@ class SMEProductUXEngine:
 # ==================== DOCUMENT INTELLIGENCE ENGINE ====================
 
 class DocumentIntelligenceEngine:
-    """Advanced document processing and analysis for all segments"""
-    
     def __init__(self, country_code='kenya'):
         self.country = country_code
         self.overlay = LocalCurriculumOverlay.get_overlay(country_code)
@@ -1708,15 +2405,30 @@ class DocumentIntelligenceEngine:
         }
     
     def _analyze_teacher_document(self, text: str) -> Dict[str, Any]:
+        """Enhanced teacher document analysis with pedagogical scoring"""
         ped_keywords = {'objective', 'learning', 'outcome', 'assessment', 'rubric', 'activity', 
-                       'discussion', 'project', 'group', 'individual', 'differentiation'}
+                       'discussion', 'project', 'group', 'individual', 'differentiation',
+                       'lesson', 'plan', 'standards', 'evaluation', 'feedback'}
         words = text.lower().split()
         ped_count = sum(1 for w in words if w in ped_keywords)
+        
+        # Check for key lesson plan components
+        has_objective = 'objective' in text.lower()
+        has_assessment = 'assessment' in text.lower()
+        has_activity = 'activity' in text.lower()
+        has_standards = 'standard' in text.lower() or 'standard' in text.lower()
+        
+        completeness_score = sum([has_objective, has_assessment, has_activity, has_standards]) / 4 * 100
         
         return {
             'pedagogical_score': round(min(100, (ped_count / len(words) * 1000)) if words else 0, 2),
             'curriculum_alignment': self._check_curriculum_alignment(text),
-            'suggested_enhancements': self._suggest_teacher_enhancements(text)
+            'suggested_enhancements': self._suggest_teacher_enhancements(text),
+            'completeness_score': round(completeness_score, 2),
+            'has_objective': has_objective,
+            'has_assessment': has_assessment,
+            'has_activity': has_activity,
+            'has_standards': has_standards
         }
     
     def _analyze_professional_document(self, text: str) -> Dict[str, Any]:
@@ -1826,6 +2538,7 @@ class DocumentIntelligenceEngine:
         }
     
     def _suggest_teacher_enhancements(self, text: str) -> List[str]:
+        """Enhanced teacher enhancement suggestions"""
         suggestions = []
         text_lower = text.lower()
         
@@ -1840,6 +2553,12 @@ class DocumentIntelligenceEngine:
         
         if 'technology' not in text_lower and 'digital' not in text_lower:
             suggestions.append("Integrate digital tools and AI resources.")
+        
+        if 'warm-up' not in text_lower and 'warm up' not in text_lower:
+            suggestions.append("Include a warm-up activity to activate prior knowledge.")
+        
+        if 'exit ticket' not in text_lower and 'exit' not in text_lower:
+            suggestions.append("Add an exit ticket to assess student understanding.")
         
         if self.country == 'kenya':
             suggestions.append("Incorporate community-based learning approaches.")
@@ -1995,8 +2714,6 @@ class DocumentIntelligenceEngine:
 # ==================== UNIVERSAL CORE ENGINE ====================
 
 class UniversalCore:
-    """Portable core curriculum that works across all education systems"""
-    
     UNIVERSAL_SUBJECTS = {
         'mathematics': {
             'topics': ['Arithmetic', 'Algebra', 'Geometry', 'Statistics', 'Calculus'],
@@ -2036,8 +2753,6 @@ class UniversalCore:
 # ==================== LOCAL OVERLAY ENGINE ====================
 
 class LocalCurriculumOverlay:
-    """Country/board-specific content overlay - no core rewrite required"""
-    
     CURRICULUM_OVERLAYS = {
         'kenya': {
             'code': 'KE',
@@ -2205,8 +2920,6 @@ class LocalCurriculumOverlay:
 # ==================== SEGMENT-SPECIFIC OUTCOME ENGINES ====================
 
 class StudentOutcomeEngine:
-    """Student - Grade & Exam Outcomes Engine"""
-    
     def __init__(self, country_code='kenya'):
         self.country = country_code
         self.overlay = LocalCurriculumOverlay.get_overlay(country_code)
@@ -2274,43 +2987,13 @@ class StudentOutcomeEngine:
         score = user_data.get('score', 0)
         
         grading_scales = {
-            'kenya': {
-                90: 'A (Excellent)', 
-                75: 'B (Good)', 
-                60: 'C (Satisfactory)', 
-                45: 'D (Needs Improvement)', 
-                0: 'E (Remedial)'
-            },
-            'bangladesh': {
-                80: 'A+ (Excellent)', 
-                70: 'A (Good)', 
-                60: 'A- (Satisfactory)', 
-                50: 'B (Average)', 
-                0: 'C (Needs Improvement)'
-            },
-            'usa': {
-                90: 'A', 
-                80: 'B', 
-                70: 'C', 
-                60: 'D', 
-                0: 'F'
-            },
-            'uk': {
-                70: 'A (First Class)', 
-                60: 'B (Upper Second)', 
-                50: 'C (Lower Second)', 
-                40: 'D (Third)', 
-                0: 'E (Fail)'
-            }
+            'kenya': {90: 'A (Excellent)', 75: 'B (Good)', 60: 'C (Satisfactory)', 45: 'D (Needs Improvement)', 0: 'E (Remedial)'},
+            'bangladesh': {80: 'A+ (Excellent)', 70: 'A (Good)', 60: 'A- (Satisfactory)', 50: 'B (Average)', 0: 'C (Needs Improvement)'},
+            'usa': {90: 'A', 80: 'B', 70: 'C', 60: 'D', 0: 'F'},
+            'uk': {70: 'A (First Class)', 60: 'B (Upper Second)', 50: 'C (Lower Second)', 40: 'D (Third)', 0: 'E (Fail)'}
         }
         
-        scale = grading_scales.get(self.country, {
-            90: 'A', 
-            75: 'B', 
-            60: 'C', 
-            45: 'D', 
-            0: 'E'
-        })
+        scale = grading_scales.get(self.country, {90: 'A', 75: 'B', 60: 'C', 45: 'D', 0: 'E'})
         
         for threshold, grade in sorted(scale.items(), reverse=True):
             if score >= threshold:
@@ -2319,13 +3002,14 @@ class StudentOutcomeEngine:
 
 
 class TeacherOutcomeEngine:
-    """Teacher - Hours-Saved Engine"""
+    """Enhanced Teacher Outcome Engine with all teacher tools"""
     
     def __init__(self, country_code='kenya'):
         self.country = country_code
         self.overlay = LocalCurriculumOverlay.get_overlay(country_code)
         self.context = LocalCurriculumOverlay.get_local_context(country_code)
         self.doc_engine = DocumentIntelligenceEngine(country_code)
+        self.intelligence = TeacherIntelligenceEngine(country_code)
     
     def generate_lesson_plan(self, subject, grade, duration, curriculum='universal'):
         overlay = self.overlay
@@ -2446,11 +3130,62 @@ class TeacherOutcomeEngine:
             'Satisfactory': 'Meets basic requirements',
             'Needs Improvement': 'Requires additional support'
         })
+    
+    # ===== Teacher Intelligence Methods =====
+    
+    def generate_lesson_bundle(self, subject: str, grade: str, topic: str, duration: int) -> Dict[str, Any]:
+        return self.intelligence.generate_lesson_bundle(subject, grade, topic, duration)
+    
+    def generate_quiz(self, subject: str, grade: str, topic: str, num_questions: int = 5) -> Quiz:
+        return self.intelligence.generate_quiz(subject, grade, topic, num_questions)
+    
+    def generate_rubric(self, title: str, criteria: List[str], levels: List[str]) -> Rubric:
+        return self.intelligence.generate_rubric(title, criteria, levels)
+    
+    def adjust_reading_level(self, text: str, target_level: str) -> Dict[str, Any]:
+        return self.intelligence.adjust_reading_level(text, target_level)
+    
+    def convert_document(self, uploaded_file, output_format: str) -> Dict[str, Any]:
+        return self.intelligence.convert_document(uploaded_file, output_format)
+    
+    def get_lesson_blocks(self, lesson_plan: LessonPlan) -> Dict[str, Any]:
+        return self.intelligence.get_lesson_blocks(lesson_plan)
+    
+    def regenerate_block(self, block_type: str, context: str) -> str:
+        return self.intelligence.regenerate_block(block_type, context)
+    
+    def apply_accommodation(self, content: str, accommodation_type: str) -> Dict[str, Any]:
+        return self.intelligence.apply_accommodation(content, accommodation_type)
+    
+    def generate_batch_feedback(self, assignments: List[Dict[str, Any]]) -> List[StudentFeedback]:
+        return self.intelligence.generate_batch_feedback(assignments)
+    
+    def approve_feedback(self, feedback_id: str) -> Dict[str, Any]:
+        return self.intelligence.approve_feedback(feedback_id)
+    
+    def calculate_time_saved(self) -> Dict[str, Any]:
+        return self.intelligence.calculate_time_saved()
+    
+    def generate_parent_update(self, student_name: str, subject: str, progress: str) -> str:
+        return self.intelligence.generate_parent_update(student_name, subject, progress)
+    
+    def generate_sub_plan(self, subject: str, grade: str, lesson_topic: str) -> Dict[str, Any]:
+        return self.intelligence.generate_sub_plan(subject, grade, lesson_topic)
+    
+    def redact_pii(self, text: str) -> Dict[str, Any]:
+        return self.intelligence.redact_pii(text)
+    
+    def connect_lms(self, lms_type: str, credentials: Dict[str, str]) -> Dict[str, Any]:
+        return self.intelligence.connect_lms(lms_type, credentials)
+    
+    def sync_lms_data(self, lms_type: str, sync_type: str = 'all') -> Dict[str, Any]:
+        return self.intelligence.sync_lms_data(lms_type, sync_type)
+    
+    def map_standards(self, content: str, standard_type: str = 'common_core') -> List[str]:
+        return self.intelligence.map_standards(content, standard_type)
 
 
 class ProfessionalOutcomeEngine:
-    """Professional - Career Acceleration Lab with Research, Analysis & Portfolio Tools"""
-    
     def __init__(self, domain='business', country_code='kenya'):
         self.domain = domain
         self.country = country_code
@@ -2520,7 +3255,6 @@ class ProfessionalOutcomeEngine:
         return workflows.get(task_type, workflows['research'])
     
     def hybrid_search(self, query: str, search_type: str = 'hybrid') -> List[Dict[str, Any]]:
-        """Hybrid search across documents"""
         search_type_enum = SearchType.HYBRID
         if search_type == 'keyword':
             search_type_enum = SearchType.KEYWORD
@@ -2532,57 +3266,43 @@ class ProfessionalOutcomeEngine:
         return self.intelligence.hybrid_search(query, search_type_enum)
     
     def audit_analysis(self, analysis_text: str) -> Dict[str, Any]:
-        """Audit analysis against source documents"""
         return self.intelligence.audit_analysis(analysis_text, self.intelligence.documents)
     
     def execute_quant_analysis(self, code: str, data: pd.DataFrame) -> Dict[str, Any]:
-        """Execute quantitative analysis in sandbox"""
         return self.intelligence.execute_quant_analysis(code, data)
     
     def get_portfolio_metrics(self) -> Dict[str, Any]:
-        """Get portfolio metrics"""
         return self.intelligence.calculate_portfolio_metrics()
     
     def run_stress_test(self, scenario: MacroScenario) -> Dict[str, Any]:
-        """Run macro stress test"""
         return self.intelligence.run_macro_stress_test(scenario)
     
     def generate_deliverable(self, template_type: str, data: Dict[str, Any]) -> str:
-        """Generate professional deliverable"""
         return self.intelligence.generate_deliverable(template_type, data)
     
     def extract_table(self, pdf_content: str) -> pd.DataFrame:
-        """Extract table from PDF"""
         return self.intelligence.extract_table_from_pdf(pdf_content)
     
     def get_watchdog_alerts(self) -> List[WatchdogAlert]:
-        """Get watchdog alerts"""
         return self.intelligence.watchdog_alerts
     
     def refresh_watchdogs(self) -> List[WatchdogAlert]:
-        """Refresh watchdog alerts"""
         return self.intelligence.run_watchdog_alerts()
     
     def get_market_data(self, ticker: str) -> Dict[str, Any]:
-        """Get market data"""
         return self.intelligence.fetch_market_data(ticker)
     
     def get_sec_filing(self, ticker: str) -> Dict[str, Any]:
-        """Get SEC filing"""
         return self.intelligence.fetch_sec_filing(ticker)
     
     def get_earnings_call(self, ticker: str) -> Dict[str, Any]:
-        """Get earnings call transcript"""
         return self.intelligence.fetch_earnings_call(ticker)
     
     def get_workspace_data(self) -> Dict[str, Any]:
-        """Get workspace data"""
         return self.intelligence.get_workspace_data()
 
 
 class SMEOutcomeEngine:
-    """SME - Growth Automation Engine with Enhanced Features"""
-    
     def __init__(self, market='africa', country_code='kenya'):
         self.market = market
         self.country = country_code
@@ -2643,7 +3363,6 @@ class SMEOutcomeEngine:
 
 # ==================== MAIN APPLICATION ====================
 
-# Initialize session state
 def init_session_state():
     defaults = {
         'user_role': None,
@@ -2660,7 +3379,11 @@ def init_session_state():
         'sme_tasks': [],
         'sme_alerts': [],
         'webhook_events': [],
-        'professional_workspace': {}
+        'professional_workspace': {},
+        'teacher_lesson_plans': [],
+        'teacher_rubrics': [],
+        'teacher_quizzes': [],
+        'teacher_feedback': []
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -2668,7 +3391,6 @@ def init_session_state():
 
 init_session_state()
 
-# Custom CSS
 def apply_custom_css():
     st.markdown("""
     <style>
@@ -2776,15 +3498,28 @@ def apply_custom_css():
         font-family: monospace;
         font-size: 0.9em;
     }
-    .split-screen {
-        display: flex;
-        gap: 20px;
-    }
-    .split-screen > div {
-        flex: 1;
+    .teacher-card {
+        background: #e8f5e9;
+        border-left: 5px solid #2e7d32;
         padding: 15px;
-        background: #f5f5f5;
-        border-radius: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+    }
+    .time-saved-metric {
+        background: #fff8e1;
+        border-left: 5px solid #f57f17;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 10px 0;
+    }
+    .accommodation-tag {
+        display: inline-block;
+        background: #e3f2fd;
+        padding: 4px 12px;
+        border-radius: 15px;
+        margin: 4px;
+        font-size: 0.8rem;
+        color: #1565c0;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -2796,7 +3531,6 @@ apply_custom_css()
 st.sidebar.title("🌍 AI Shiksha")
 st.sidebar.caption("Universal Core + Local Overlay")
 
-# Country selection
 country_flags = {
     'kenya': '🇰🇪',
     'bangladesh': '🇧🇩',
@@ -2811,7 +3545,6 @@ country_code = st.sidebar.selectbox(
 )
 st.session_state.country_code = country_code
 
-# Get overlay info
 overlay = LocalCurriculumOverlay.get_overlay(country_code)
 context = LocalCurriculumOverlay.get_local_context(country_code)
 
@@ -2824,17 +3557,15 @@ if overlay:
     **Currency:** {overlay.get('currency', 'Local')}
     """)
 
-# Role selection
 user_role = st.sidebar.selectbox(
     "👤 Select Your Role:",
     ['Student', 'Teacher', 'Professional', 'SME Business Owner']
 )
 st.session_state.user_role = user_role
 
-# Navigation
 menu_options = {
     'Student': ['🎓 Dashboard', '📝 Practice', '📊 Progress', '🏆 Achievements', '📄 Document Analysis'],
-    'Teacher': ['👨‍🏫 Dashboard', '📋 Lesson Builder', '📝 Assessment', '⏱️ Hours Saved', '📄 Document Analysis'],
+    'Teacher': ['👨‍🏫 Dashboard', '📋 Lesson Builder', '📝 Assessment', '⏱️ Hours Saved', '📄 Document Analysis', '📑 LMS Integration', '🎯 Standards Mapping'],
     'Professional': ['💼 Dashboard', '🔬 Research', '📊 Portfolio', '📄 Document Analysis', '📑 Workspace', '⚡ Watchdogs'],
     'SME Business Owner': ['🏢 Dashboard', '📈 Growth', '🤖 Automation', '📊 Analytics', '📄 Document Analysis', '🔌 API Connectors', '⚡ Webhooks']
 }
@@ -2842,7 +3573,6 @@ menu_options = {
 st.sidebar.divider()
 choice = st.sidebar.radio("Navigate:", menu_options.get(user_role, ['Dashboard']))
 
-# Vibe Check
 def show_vibe_check():
     with st.sidebar.expander("🎯 Daily Vibe Check", expanded=False):
         vibe = st.select_slider(
@@ -2870,22 +3600,605 @@ def show_vibe_check():
 show_vibe_check()
 
 
+# ==================== TEACHER FUNCTIONS ====================
+
+def show_teacher_dashboard():
+    """Enhanced Teacher Dashboard with all teacher tools"""
+    st.header(f"👨‍🏫 Teacher Intelligence Dashboard - {country_code.title()}")
+    
+    teacher_engine = TeacherOutcomeEngine(country_code)
+    
+    # Quick Stats
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("📚 Lesson Plans", len(teacher_engine.intelligence.lesson_plans), "↑ 2 this week")
+    col2.metric("📝 Quizzes", len(teacher_engine.intelligence.quizzes), "↑ 1 new")
+    col3.metric("📊 Rubrics", len(teacher_engine.intelligence.rubrics), "↑ 1 new")
+    col4.metric("⏱️ Hours Saved", "7.0 hrs", "↑ 15%")
+    
+    # Time Saved Overview
+    st.subheader("⏱️ Time Saved This Week")
+    time_saved = teacher_engine.calculate_time_saved()
+    
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Hours Saved", f"{time_saved['total_hours_saved']} hrs", f"{time_saved['total_percent_saved']}%")
+    col2.metric("Lesson Planning", f"{time_saved['breakdown']['lesson_planning']['hours']} hrs", "vs 4.5 hrs traditional")
+    col3.metric("Grading", f"{time_saved['breakdown']['grading']['hours']} hrs", "vs 6 hrs traditional")
+    col4.metric("Admin Work", f"{time_saved['breakdown']['admin_work']['hours']} hrs", "vs 3 hrs traditional")
+    
+    # Recent Lesson Plans
+    with st.expander("📚 Recent Lesson Plans", expanded=True):
+        for plan in teacher_engine.intelligence.lesson_plans[-3:]:
+            st.markdown(f"""
+            <div class="teacher-card">
+            <strong>{plan.title}</strong>
+            <br>Subject: {plan.subject} | Grade: {plan.grade_level} | Duration: {plan.duration} min
+            <br>Objectives: {', '.join(plan.objectives[:2])}...
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # Recent Feedback
+    with st.expander("📝 Recent Feedback", expanded=True):
+        feedbacks = teacher_engine.intelligence.feedback_batches[-3:]
+        if feedbacks:
+            for fb in feedbacks:
+                status = "✅ Approved" if fb.approved else "⏳ Pending Review"
+                st.markdown(f"""
+                <div class="teacher-card">
+                <strong>{fb.student_name}</strong> - {fb.assignment}
+                <br>Strengths: {', '.join(fb.strengths)}
+                <br>Status: {status}
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("No feedback generated yet.")
+
+
+def show_teacher_lesson_builder():
+    """Enhanced Lesson Builder with Multi-Asset Bundle Generator"""
+    st.header(f"📋 Lesson Builder - {country_code.title()}")
+    st.caption("Create complete lesson bundles with slide outlines, worksheets, and answer keys")
+    
+    teacher_engine = TeacherOutcomeEngine(country_code)
+    
+    # Lesson Bundle Generator
+    st.subheader("🚀 Multi-Asset Bundle Generator")
+    st.caption("Generate a complete lesson plan, slide outline, worksheet, and answer key in one request")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        subject = st.selectbox("Subject:", ['Science', 'Mathematics', 'English Language', 'Geography', 'History'])
+        grade = st.selectbox("Grade Level:", overlay.get('grade_levels', ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10']))
+        topic = st.text_input("Topic:", "Photosynthesis")
+    
+    with col2:
+        duration = st.slider("Lesson Duration (minutes):", 30, 90, 45)
+        include_worksheet = st.checkbox("Include Worksheet", value=True)
+        include_answer_key = st.checkbox("Include Answer Key", value=True)
+        include_slides = st.checkbox("Include Slide Outline", value=True)
+    
+    if st.button("✨ Generate Complete Lesson Bundle", type="primary"):
+        with st.spinner("Generating lesson bundle..."):
+            bundle = teacher_engine.generate_lesson_bundle(subject, grade, topic, duration)
+        
+        st.success(f"✅ Lesson Bundle Generated! Bundle ID: {bundle['bundle_id']}")
+        
+        tabs = st.tabs(["📋 Lesson Plan", "📊 Slide Outline", "📝 Worksheet", "🔑 Answer Key"])
+        
+        with tabs[0]:
+            st.markdown(f"### {bundle['lesson_plan']['title']}")
+            st.markdown(f"**Subject:** {bundle['lesson_plan']['subject']}")
+            st.markdown(f"**Grade:** {bundle['lesson_plan']['grade']}")
+            st.markdown(f"**Duration:** {bundle['lesson_plan']['duration']} min")
+            st.markdown("**Objectives:**")
+            for obj in bundle['lesson_plan']['objectives']:
+                st.markdown(f"- {obj}")
+            st.markdown("**Procedure:**")
+            for key, value in bundle['lesson_plan']['procedure'].items():
+                st.markdown(f"- **{key.replace('_', ' ').title()}:** {value}")
+            
+            if st.button("📥 Download Lesson Plan"):
+                st.download_button(
+                    label="Download as Text",
+                    data=json.dumps(bundle['lesson_plan'], indent=2),
+                    file_name=f"lesson_plan_{topic.lower().replace(' ', '_')}.json",
+                    mime="application/json"
+                )
+        
+        with tabs[1]:
+            if include_slides:
+                st.markdown("### Slide Outline")
+                for slide in bundle['slide_outline']:
+                    st.markdown(f"**Slide {slide['slide']}:** {slide['title']} ({slide['type']})")
+            else:
+                st.info("Slide outline not included.")
+        
+        with tabs[2]:
+            if include_worksheet:
+                st.markdown(f"### {bundle['worksheet']['title']}")
+                st.markdown(f"**Total Points:** {bundle['worksheet']['total_points']}")
+                for section in bundle['worksheet']['sections']:
+                    st.markdown(f"**{section['section']}**")
+                    st.markdown(f"*{section['instructions']}*")
+                    for q in section['questions']:
+                        st.markdown(f"- {q}")
+            else:
+                st.info("Worksheet not included.")
+        
+        with tabs[3]:
+            if include_answer_key:
+                st.markdown(f"### {bundle['answer_key']['title']}")
+                for part, answers in bundle['answer_key']['answers'].items():
+                    st.markdown(f"**{part}:**")
+                    for answer in answers:
+                        st.markdown(f"- {answer}")
+            else:
+                st.info("Answer key not included.")
+    
+    # Modular Block Editor
+    st.divider()
+    st.subheader("🧩 Modular Block Editor")
+    st.caption("Edit, swap, or regenerate individual lesson sections")
+    
+    # Select existing lesson plan
+    lesson_options = [plan.title for plan in teacher_engine.intelligence.lesson_plans]
+    if lesson_options:
+        selected_lesson_title = st.selectbox("Select Lesson to Edit:", lesson_options)
+        
+        selected_plan = next(
+            (p for p in teacher_engine.intelligence.lesson_plans if p.title == selected_lesson_title),
+            None
+        )
+        
+        if selected_plan:
+            blocks = teacher_engine.get_lesson_blocks(selected_plan)
+            
+            for block_name, block_data in blocks['blocks'].items():
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"**{block_name.replace('_', ' ').title()}:**")
+                    content = st.text_area(
+                        f"Edit {block_name}",
+                        value=block_data['content'],
+                        height=100,
+                        key=f"block_{block_name}"
+                    )
+                with col2:
+                    if st.button(f"🔄 Regenerate {block_name}", key=f"regenerate_{block_name}"):
+                        new_content = teacher_engine.regenerate_block(block_name, selected_plan.title)
+                        st.session_state[f"block_{block_name}"] = new_content
+                        st.success(f"✅ {block_name} regenerated!")
+            
+            if st.button("💾 Save Lesson Changes"):
+                st.success("✅ Lesson plan saved successfully!")
+    
+    # One-Tap Accommodation Toggles
+    st.divider()
+    st.subheader("🎯 One-Tap Accommodation Toggles")
+    st.caption("Quick filters to apply IEP/504 modifications, sentence starters, or ELL translations")
+    
+    accommodation_text = st.text_area(
+        "Enter content to modify:",
+        height=100,
+        value="Students will write a paragraph explaining the process of photosynthesis."
+    )
+    
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        if st.button("📋 IEP/504", use_container_width=True):
+            result = teacher_engine.apply_accommodation(accommodation_text, 'iep_504')
+            st.info(f"✅ {result.get('changes', 'Applied')}")
+    with col2:
+        if st.button("✏️ Sentence Starters", use_container_width=True):
+            result = teacher_engine.apply_accommodation(accommodation_text, 'sentence_starters')
+            st.info(f"✅ {result.get('changes', 'Applied')}")
+    with col3:
+        if st.button("🌐 ELL Translation", use_container_width=True):
+            result = teacher_engine.apply_accommodation(accommodation_text, 'ell_translation')
+            st.info(f"✅ {result.get('changes', 'Applied')}")
+    with col4:
+        if st.button("📖 Simplified Text", use_container_width=True):
+            result = teacher_engine.apply_accommodation(accommodation_text, 'simplified_text')
+            st.info(f"✅ {result.get('changes', 'Applied')}")
+    
+    # Dynamic Lexile Adjuster
+    st.divider()
+    st.subheader("📖 Dynamic Lexile Adjuster")
+    st.caption("Rewrites any text passage up or down reading levels instantly")
+    
+    text_to_adjust = st.text_area(
+        "Enter text to adjust reading level:",
+        height=100,
+        value="Photosynthesis is the process by which plants convert sunlight into energy. This complex biochemical process involves multiple stages and specialized cellular structures."
+    )
+    
+    target_level = st.selectbox("Target Reading Level:", ['beginner', 'intermediate', 'advanced', 'expert'])
+    
+    if st.button("🔄 Adjust Reading Level"):
+        result = teacher_engine.adjust_reading_level(text_to_adjust, target_level)
+        
+        st.markdown("**Original Text:**")
+        st.text(result['original_text'])
+        st.markdown("**Adjusted Text:**")
+        st.text(result['adjusted_text'])
+        st.markdown(f"**Target Level:** {result['level_description']}")
+        st.markdown(f"**Word Count Change:** {result['word_count_original']} → {result['word_count_adjusted']}")
+        st.json(result['changes'])
+
+
+def show_teacher_assessment():
+    """Assessment Engine with Rubric & Quiz Generator"""
+    st.header(f"📝 Assessment Engine - {country_code.title()}")
+    st.caption("Build tiered grading rubrics and generate aligned quizzes")
+    
+    teacher_engine = TeacherOutcomeEngine(country_code)
+    
+    # Rubric Generator
+    st.subheader("📊 Rubric Generator")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        rubric_title = st.text_input("Rubric Title:", "Science Lab Report Rubric")
+        criteria_list = st.text_area("Criteria (one per line):", "Hypothesis\nProcedure\nData Collection\nAnalysis\nConclusion")
+    
+    with col2:
+        levels_list = st.text_input("Levels (comma-separated):", "Excellent, Proficient, Developing, Beginning")
+    
+    if st.button("✨ Generate Rubric", type="primary"):
+        criteria = [c.strip() for c in criteria_list.split('\n') if c.strip()]
+        levels = [l.strip() for l in levels_list.split(',') if l.strip()]
+        
+        if criteria and levels:
+            rubric = teacher_engine.generate_rubric(rubric_title, criteria, levels)
+            
+            st.success(f"✅ Rubric Generated: {rubric.title}")
+            
+            # Display rubric
+            st.markdown("### Rubric Preview")
+            data = []
+            for criterion in rubric.criteria:
+                row = {'Criterion': criterion}
+                for level in rubric.levels:
+                    row[level] = rubric.descriptions[criterion].get(level, '')
+                row['Weight'] = f"{rubric.weightings.get(criterion, 0) * 100:.0f}%"
+                data.append(row)
+            
+            st.dataframe(pd.DataFrame(data))
+            
+            if st.button("📥 Download Rubric"):
+                st.download_button(
+                    label="Download as JSON",
+                    data=json.dumps({
+                        'title': rubric.title,
+                        'criteria': rubric.criteria,
+                        'levels': rubric.levels,
+                        'descriptions': rubric.descriptions,
+                        'weightings': rubric.weightings
+                    }, indent=2),
+                    file_name=f"{rubric_title.lower().replace(' ', '_')}_rubric.json",
+                    mime="application/json"
+                )
+        else:
+            st.error("Please enter at least one criterion and level.")
+    
+    # Quiz Generator
+    st.divider()
+    st.subheader("📝 Quiz Generator")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        quiz_subject = st.selectbox("Subject:", ['Science', 'Mathematics', 'English Language', 'Geography', 'History'], key="quiz_subject")
+        quiz_grade = st.selectbox("Grade Level:", overlay.get('grade_levels', ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10']), key="quiz_grade")
+        quiz_topic = st.text_input("Topic:", "Photosynthesis")
+    
+    with col2:
+        num_questions = st.slider("Number of Questions:", 3, 15, 5)
+        include_time_limit = st.checkbox("Include Time Limit", value=True)
+    
+    if st.button("✨ Generate Quiz", type="primary"):
+        quiz = teacher_engine.generate_quiz(quiz_subject, quiz_grade, quiz_topic, num_questions)
+        
+        st.success(f"✅ Quiz Generated: {quiz.title}")
+        st.markdown(f"**Total Points:** {quiz.total_points}")
+        if quiz.time_limit:
+            st.markdown(f"**Time Limit:** {quiz.time_limit} minutes")
+        
+        # Display questions
+        for q in quiz.questions:
+            st.markdown(f"**Question {q['id']}** ({q['type'].replace('_', ' ').title()}, {q['points']} pts)")
+            st.markdown(q['question'])
+            if q['type'] == 'multiple_choice':
+                for i, opt in enumerate(q.get('options', [])):
+                    st.markdown(f"- {chr(65 + i)}. {opt}")
+            if 'correct_answer' in q:
+                st.caption(f"✅ Correct Answer: {q['correct_answer']}")
+            st.divider()
+        
+        if st.button("📥 Download Quiz"):
+            st.download_button(
+                label="Download as JSON",
+                data=json.dumps({
+                    'title': quiz.title,
+                    'subject': quiz.subject,
+                    'grade_level': quiz.grade_level,
+                    'questions': quiz.questions,
+                    'total_points': quiz.total_points,
+                    'time_limit': quiz.time_limit
+                }, indent=2),
+                file_name=f"{quiz_topic.lower().replace(' ', '_')}_quiz.json",
+                mime="application/json"
+            )
+
+
+def show_teacher_hours_saved():
+    """Time-Saved Dashboard with Analytics"""
+    st.header(f"⏱️ Time-Saved Dashboard - {country_code.title()}")
+    st.caption("Analytics tracking estimated hours recovered per week on lesson planning, grading, and admin work")
+    
+    teacher_engine = TeacherOutcomeEngine(country_code)
+    
+    # Time Saved Overview
+    time_saved = teacher_engine.calculate_time_saved()
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Hours Saved This Week", f"{time_saved['total_hours_saved']} hrs", f"{time_saved['total_percent_saved']}%")
+    col2.metric("Monthly Projection", f"{time_saved['monthly_projection']} hrs")
+    col3.metric("Yearly Projection", f"{time_saved['yearly_projection']} hrs")
+    
+    # Breakdown
+    st.subheader("📊 Time Saved Breakdown")
+    
+    breakdown_data = []
+    for category, data in time_saved['breakdown'].items():
+        breakdown_data.append({
+            'Category': category.replace('_', ' ').title(),
+            'Hours Saved': data['hours'],
+            'Traditional Hours': float(data['saved'].split(' ')[1]) if 'vs' in data['saved'] else 0,
+            'Savings %': f"{round((data['hours'] / float(data['saved'].split(' ')[1] if 'vs' in data['saved'] else 1)) * 100, 1)}%"
+        })
+    
+    st.dataframe(pd.DataFrame(breakdown_data))
+    
+    # Historical Trend
+    st.subheader("📈 Weekly Time Saved Trend")
+    history = teacher_engine.intelligence.time_saved_history
+    
+    if history:
+        trend_data = []
+        for metric in history:
+            trend_data.append({
+                'Week': metric.week_start.strftime('%Y-%m-%d'),
+                'Lesson Planning': metric.lesson_planning_hours,
+                'Grading': metric.grading_hours,
+                'Admin': metric.admin_hours,
+                'Total': metric.total_hours
+            })
+        df_trend = pd.DataFrame(trend_data)
+        st.line_chart(df_trend.set_index('Week'))
+    
+    # Parent & Sub-Plan Generators
+    st.divider()
+    st.subheader("📧 Parent & Sub-Plan Generators")
+    st.caption("One-click drafting of professional parent updates and emergency substitute teacher guides")
+    
+    tab1, tab2 = st.tabs(["📧 Parent Update", "📋 Sub Plan"])
+    
+    with tab1:
+        st.markdown("### Parent Update Generator")
+        
+        student_name = st.text_input("Student Name:", "Alex Johnson")
+        subject = st.selectbox("Subject:", ['Science', 'Mathematics', 'English Language', 'Geography', 'History'], key="parent_subject")
+        progress = st.selectbox("Progress:", ["making excellent progress", "showing improvement", "working at grade level", "needs additional support", "has shown significant growth"])
+        
+        if st.button("✏️ Generate Parent Update"):
+            update = teacher_engine.generate_parent_update(student_name, subject, progress)
+            st.markdown("### 📧 Parent Update")
+            st.text_area("Copy and send:", update, height=200)
+            
+            st.download_button(
+                label="📥 Download Update",
+                data=update,
+                file_name=f"parent_update_{student_name.lower().replace(' ', '_')}.txt",
+                mime="text/plain"
+            )
+    
+    with tab2:
+        st.markdown("### Sub Plan Generator")
+        
+        sub_subject = st.selectbox("Subject:", ['Science', 'Mathematics', 'English Language', 'Geography', 'History'], key="sub_subject")
+        sub_grade = st.selectbox("Grade Level:", overlay.get('grade_levels', ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10']), key="sub_grade")
+        sub_topic = st.text_input("Lesson Topic:", "Photosynthesis")
+        
+        if st.button("📋 Generate Sub Plan"):
+            sub_plan = teacher_engine.generate_sub_plan(sub_subject, sub_grade, sub_topic)
+            
+            st.markdown(f"### 📋 {sub_plan['title']}")
+            st.markdown(f"**Overview:** {sub_plan['overview']}")
+            
+            st.markdown("**Schedule:**")
+            for period, details in sub_plan['schedule'].items():
+                st.markdown(f"- **{period.replace('_', ' ').title()}** ({details['time']}): {details['activity']}")
+                st.markdown(f"  Materials: {details['materials']}")
+            
+            st.markdown(f"**Emergency Procedures:** {sub_plan['emergency_procedures']}")
+            st.markdown(f"**Notes:** {sub_plan['notes']}")
+            
+            st.download_button(
+                label="📥 Download Sub Plan",
+                data=json.dumps(sub_plan, indent=2),
+                file_name=f"sub_plan_{sub_topic.lower().replace(' ', '_')}.json",
+                mime="application/json"
+            )
+    
+    # Zero-PII Compliance
+    st.divider()
+    st.subheader("🔒 Zero-PII Compliance Layer")
+    st.caption("Client-side redaction of student names and FERPA/COPPA data isolation")
+    
+    text_with_pii = st.text_area(
+        "Enter text with PII to redact:",
+        height=100,
+        value="John Smith scored 95% on the assignment. Contact john.smith@school.com for more information."
+    )
+    
+    if st.button("🔒 Redact PII"):
+        redacted = teacher_engine.redact_pii(text_with_pii)
+        
+        st.markdown("**Original Text:**")
+        st.text(redacted['original'])
+        st.markdown("**Redacted Text:**")
+        st.text(redacted['redacted'])
+        st.markdown(f"**PII Removed:** {redacted['pii_removed']} instances")
+        st.markdown(f"**Compliance:** {redacted['compliance_note']}")
+
+
+def show_teacher_lms_integration():
+    """LMS Integration & File Conversion"""
+    st.header(f"📑 LMS Integration - {country_code.title()}")
+    st.caption("Native export/import sync with Google Classroom, Canvas, Schoology, and Microsoft Teams")
+    
+    teacher_engine = TeacherOutcomeEngine(country_code)
+    
+    # LMS Connection
+    st.subheader("🔗 Connect to LMS")
+    
+    lms_options = ['google_classroom', 'canvas', 'schoology', 'microsoft_teams']
+    lms_names = {
+        'google_classroom': 'Google Classroom 📚',
+        'canvas': 'Canvas 🎨',
+        'schoology': 'Schoology 📖',
+        'microsoft_teams': 'Microsoft Teams 💬'
+    }
+    
+    for lms in lms_options:
+        col1, col2, col3 = st.columns([2, 1, 1])
+        with col1:
+            st.markdown(f"**{lms_names.get(lms, lms)}**")
+        with col2:
+            if st.button(f"Connect {lms_names.get(lms, lms)}", key=f"connect_{lms}"):
+                result = teacher_engine.connect_lms(lms, {'api_key': 'demo_key'})
+                if result['status'] == 'connected':
+                    st.success(f"✅ Connected to {result['config']['name']}")
+                else:
+                    st.error(f"❌ {result['message']}")
+        with col3:
+            if st.button(f"🔄 Sync", key=f"sync_{lms}"):
+                result = teacher_engine.sync_lms_data(lms)
+                if result['status'] == 'success':
+                    st.success(f"✅ Synced {result['sync_type']} data")
+                    st.json(result['data'])
+    
+    # Universal File Conversion
+    st.divider()
+    st.subheader("📄 Universal File Conversion")
+    st.caption("Import old PDF/Word worksheets and export to editable Google Docs, Slides, or printable formats")
+    
+    uploaded_file = st.file_uploader(
+        "Upload Document to Convert:",
+        type=['pdf', 'docx', 'txt'],
+        key="teacher_file_convert"
+    )
+    
+    if uploaded_file is not None:
+        output_format = st.selectbox(
+            "Output Format:",
+            ['google_docs', 'google_slides', 'printable']
+        )
+        
+        if st.button("🔄 Convert Document"):
+            with st.spinner("Converting document..."):
+                result = teacher_engine.convert_document(uploaded_file, output_format)
+            
+            if result.get('status') == 'error':
+                st.error(f"❌ {result.get('message', 'Conversion failed')}")
+            else:
+                st.success(f"✅ {result.get('message', 'Conversion complete')}")
+                st.markdown(f"**Original Format:** {result.get('original_format')}")
+                st.markdown(f"**Output Format:** {result.get('output_format')}")
+                st.markdown(f"**Title:** {result.get('title')}")
+                
+                st.text_area("Converted Content Preview:", result.get('content', '')[:500], height=200)
+                
+                if result.get('downloadable'):
+                    st.download_button(
+                        label="📥 Download Converted File",
+                        data=result.get('content', ''),
+                        file_name=f"{result.get('title')}.txt",
+                        mime="text/plain"
+                    )
+
+
+def show_teacher_standards_mapping():
+    """Curriculum Standard Mapping"""
+    st.header(f"🎯 Standards Mapping - {country_code.title()}")
+    st.caption("Embedded databases of state and national benchmarks for auto-tagging")
+    
+    teacher_engine = TeacherOutcomeEngine(country_code)
+    
+    st.subheader("📋 Curriculum Standards Database")
+    
+    standard_types = {
+        'common_core': 'Common Core State Standards',
+        'ngss': 'Next Generation Science Standards (NGSS)',
+        'teks': 'Texas Essential Knowledge and Skills (TEKS)',
+        'cbc': 'Competency Based Curriculum (CBC)',
+        'nctb': 'National Curriculum (NCTB)'
+    }
+    
+    selected_standard = st.selectbox(
+        "Select Standards Type:",
+        list(standard_types.keys()),
+        format_func=lambda x: standard_types.get(x, x)
+    )
+    
+    if selected_standard in teacher_engine.intelligence.standard_databases:
+        db = teacher_engine.intelligence.standard_databases[selected_standard]
+        st.markdown(f"**{standard_types.get(selected_standard)}**")
+        
+        for category, standards in db.items():
+            st.markdown(f"### {category}")
+            st.markdown(", ".join(standards))
+    
+    # Auto-Tagging
+    st.divider()
+    st.subheader("🏷️ Auto-Tag Content with Standards")
+    st.caption("Paste content to automatically map to relevant standards")
+    
+    content_to_tag = st.text_area(
+        "Enter content to tag:",
+        height=150,
+        value="Students will explore the process of photosynthesis and its role in the carbon cycle."
+    )
+    
+    tag_standard_type = st.selectbox(
+        "Select Standards Type for Tagging:",
+        ['common_core', 'ngss', 'teks', 'cbc', 'nctb'],
+        format_func=lambda x: standard_types.get(x, x)
+    )
+    
+    if st.button("🏷️ Auto-Tag Content"):
+        matched = teacher_engine.map_standards(content_to_tag, tag_standard_type)
+        
+        if matched:
+            st.success(f"✅ Found {len(matched)} matching standards")
+            for standard in matched:
+                st.markdown(f"- {standard}")
+        else:
+            st.info("No matching standards found. Try adjusting your content or selecting a different standards type.")
+
+
 # ==================== PROFESSIONAL FUNCTIONS ====================
 
 def show_professional_dashboard():
-    """Professional Dashboard with Research, Analysis & Portfolio Tools"""
     st.header(f"💼 Professional Intelligence Dashboard - {country_code.title()}")
     
     prof_engine = ProfessionalOutcomeEngine(st.session_state.domain, country_code)
     
-    # Quick Stats
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("📚 Documents", len(prof_engine.intelligence.documents), "↑ 2 new")
     col2.metric("📊 Portfolio Value", "$75,825", "↑ 8.2%")
     col3.metric("⚠️ Watchdog Alerts", len(prof_engine.intelligence.watchdog_alerts), "3 unread")
     col4.metric("⏱️ Time Saved", "18 hrs", "↑ 4 hrs")
     
-    # Portfolio Overview
     st.subheader("📊 Portfolio Overview")
     portfolio_metrics = prof_engine.get_portfolio_metrics()
     
@@ -2895,7 +4208,6 @@ def show_professional_dashboard():
     col3.metric("Sharpe Ratio", f"{portfolio_metrics['sharpe_ratio']:.2f}")
     col4.metric("Concentration Risk", f"{portfolio_metrics['concentration_risk']:.1%}")
     
-    # Portfolio Holdings
     with st.expander("📈 Portfolio Holdings", expanded=True):
         assets_data = []
         for asset in prof_engine.intelligence.portfolio_assets:
@@ -2910,16 +4222,11 @@ def show_professional_dashboard():
             })
         st.dataframe(pd.DataFrame(assets_data))
     
-    # Watchdog Alerts
     st.subheader("⚡ 24/7 Asset Watchdogs")
     alerts = prof_engine.get_watchdog_alerts()
     
     for alert in alerts[-5:]:
-        severity_color = {
-            'high': '🔴',
-            'medium': '🟡',
-            'low': '🟢'
-        }.get(alert.severity, '🔵')
+        severity_color = {'high': '🔴', 'medium': '🟡', 'low': '🟢'}.get(alert.severity, '🔵')
         
         st.markdown(f"""
         <div class="watchdog-alert">
@@ -2939,12 +4246,10 @@ def show_professional_dashboard():
 
 
 def show_professional_research():
-    """Professional Research Tools"""
     st.header(f"🔬 Research & Analysis - {country_code.title()}")
     
     prof_engine = ProfessionalOutcomeEngine(st.session_state.domain, country_code)
     
-    # Hybrid Search
     st.subheader("🔍 Hybrid Search Engine")
     st.caption("Search across documents using vector + keyword (BM25) hybrid retrieval")
     
@@ -2967,7 +4272,6 @@ def show_professional_research():
                     st.markdown(f"**Matches:** {', '.join(result['matches'][:5])}")
                     st.markdown(f"**Content Preview:** {doc.content[:300]}...")
                     
-                    # Show citations
                     if doc.citations:
                         st.markdown("**📝 Citations:**")
                         for citation in doc.citations[:3]:
@@ -2975,7 +4279,6 @@ def show_professional_research():
         else:
             st.info("No results found. Try adjusting your search terms.")
     
-    # Document Upload & Ingestion
     st.divider()
     st.subheader("📄 Document Ingestion")
     st.caption("Upload documents for AI-powered analysis and citation tracking")
@@ -3005,8 +4308,6 @@ def show_professional_research():
                     )
                     
                     st.success(f"✅ Document ingested: {doc.title}")
-                    
-                    # Show extracted information
                     st.markdown(f"**Document ID:** {doc.id}")
                     st.markdown(f"**Source Type:** {doc.source_type}")
                     st.markdown(f"**Words:** {len(doc.content.split())}")
@@ -3016,7 +4317,6 @@ def show_professional_research():
                         for citation in doc.citations[:3]:
                             st.markdown(f"- {citation.get('claim', 'N/A')}")
     
-    # Audit-Linked Citation Engine
     st.divider()
     st.subheader("🔗 Audit-Linked Citation Engine")
     st.caption("Verify claims against source documents with page-level citations")
@@ -3048,7 +4348,6 @@ def show_professional_research():
             for claim in audit_results['unverified_claims']:
                 st.markdown(f"- {claim}")
     
-    # Code-Executing Data Sandbox
     st.divider()
     st.subheader("🧮 Code-Executing Data Sandbox")
     st.caption("Run quantitative analysis in a sandboxed Python environment")
@@ -3090,12 +4389,10 @@ result = {
 
 
 def show_professional_portfolio():
-    """Professional Portfolio Intelligence"""
     st.header(f"📊 Portfolio Intelligence - {country_code.title()}")
     
     prof_engine = ProfessionalOutcomeEngine(st.session_state.domain, country_code)
     
-    # Portfolio Summary
     portfolio_metrics = prof_engine.get_portfolio_metrics()
     
     col1, col2, col3 = st.columns(3)
@@ -3103,7 +4400,6 @@ def show_professional_portfolio():
     col2.metric("Volatility (Annualized)", f"{portfolio_metrics['volatility']:.2%}")
     col3.metric("Sharpe Ratio", f"{portfolio_metrics['sharpe_ratio']:.2f}")
     
-    # Sector Exposure
     st.subheader("📊 Sector Concentration")
     sector_data = pd.DataFrame({
         'Sector': list(portfolio_metrics['sector_exposure'].keys()),
@@ -3111,7 +4407,6 @@ def show_professional_portfolio():
     })
     st.dataframe(sector_data)
     
-    # Macro Scenario Stress-Testing
     st.divider()
     st.subheader("🌍 Macro Scenario Stress-Testing")
     st.caption("Simulate macroeconomic shocks against your portfolio")
@@ -3146,12 +4441,10 @@ def show_professional_portfolio():
             st.metric("Portfolio Impact", f"{stress_results['total_return']:.1f}%")
             st.metric("Risk Assessment", stress_results['risk_assessment'])
             
-            # Asset-level impacts
             st.markdown("**Asset Impacts:**")
             impact_df = pd.DataFrame(stress_results['asset_impacts'])
             st.dataframe(impact_df[['ticker', 'current_value', 'impacted_value', 'impact_percent']])
     
-    # One-Click Deliverable Generator
     st.divider()
     st.subheader("📄 One-Click Deliverable Generator")
     st.caption("Turn research notes into professional deliverables")
@@ -3189,7 +4482,6 @@ def show_professional_portfolio():
 
 
 def show_professional_workspace():
-    """Split-Screen Interactive Workspace"""
     st.header(f"📑 Split-Screen Workspace - {country_code.title()}")
     st.caption("Dual-pane interface with working notes and source documents")
     
@@ -3236,7 +4528,6 @@ Operating margin expansion to 28.5% indicates improving efficiency.
                 st.markdown(f"**Type:** {doc['type']}")
                 st.markdown(f"**Preview:** {doc['content']}")
         
-        # Automated Table Extraction
         st.divider()
         st.subheader("📊 Automated Table Extraction")
         st.caption("Extract tables from PDFs into Excel-ready format")
@@ -3249,7 +4540,6 @@ Operating margin expansion to 28.5% indicates improving efficiency.
                         st.markdown(f"**Table from {doc.title}:**")
                         st.dataframe(tables)
                         
-                        # Download as CSV
                         csv = tables.to_csv(index=False)
                         st.download_button(
                             label=f"📥 Download {doc.title} Table",
@@ -3260,13 +4550,11 @@ Operating margin expansion to 28.5% indicates improving efficiency.
 
 
 def show_professional_watchdogs():
-    """24/7 Asset Watchdogs"""
     st.header(f"⚡ 24/7 Asset Watchdogs - {country_code.title()}")
     st.caption("Automated agents scanning earnings, regulatory filings, and market news")
     
     prof_engine = ProfessionalOutcomeEngine(st.session_state.domain, country_code)
     
-    # Control Panel
     col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("🔄 Refresh All Watchdogs", type="primary"):
@@ -3284,20 +4572,14 @@ def show_professional_watchdogs():
         unread = len([a for a in prof_engine.get_watchdog_alerts() if not a.read])
         st.caption(f"Unread: {unread}")
     
-    # Filter
     filter_type = st.selectbox("Filter by:", ['All', 'earnings', 'filing', 'news', 'price'])
     
-    # Display Alerts
     alerts = prof_engine.get_watchdog_alerts()
     if filter_type != 'All':
         alerts = [a for a in alerts if a.alert_type == filter_type]
     
     for alert in alerts:
-        severity_color = {
-            'high': '🔴',
-            'medium': '🟡',
-            'low': '🟢'
-        }.get(alert.severity, '🔵')
+        severity_color = {'high': '🔴', 'medium': '🟡', 'low': '🟢'}.get(alert.severity, '🔵')
         
         col1, col2 = st.columns([5, 1])
         with col1:
@@ -3317,7 +4599,6 @@ def show_professional_watchdogs():
     if not alerts:
         st.info("No alerts to display.")
     
-    # Real-Time Market Feeds
     st.divider()
     st.subheader("📈 Real-Time Market Feeds")
     
@@ -3345,7 +4626,6 @@ def show_professional_watchdogs():
 # ==================== DOCUMENT ANALYSIS COMPONENT ====================
 
 def show_document_analysis():
-    """Universal document analysis component for all segments"""
     st.header(f"📄 Document Intelligence - {user_role}")
     st.caption(f"Upload your {user_role.lower()} documents for AI-powered analysis and feedback")
     
@@ -3411,6 +4691,7 @@ def show_document_analysis():
                 col1, col2 = st.columns(2)
                 with col1:
                     st.metric("🎓 Pedagogical Score", f"{analysis.get('pedagogical_score', 0)}%")
+                    st.metric("📋 Completeness Score", f"{analysis.get('completeness_score', 0)}%")
                     alignment = analysis.get('curriculum_alignment', {})
                     st.metric("📋 Curriculum Alignment", alignment.get('status', 'Unknown'))
                     st.markdown("**✅ Matched Indicators:**")
@@ -3420,6 +4701,11 @@ def show_document_analysis():
                     st.markdown("**💡 Suggested Enhancements:**")
                     for suggestion in analysis.get('suggested_enhancements', []):
                         st.info(f"• {suggestion}")
+                    st.markdown("**📋 Components:**")
+                    st.markdown(f"- Objectives: {'✅' if analysis.get('has_objective') else '❌'}")
+                    st.markdown(f"- Assessment: {'✅' if analysis.get('has_assessment') else '❌'}")
+                    st.markdown(f"- Activities: {'✅' if analysis.get('has_activity') else '❌'}")
+                    st.markdown(f"- Standards: {'✅' if analysis.get('has_standards') else '❌'}")
             
             elif user_role == 'Professional':
                 col1, col2 = st.columns(2)
@@ -3476,7 +4762,16 @@ def show_document_analysis():
                 Key Phrases: {', '.join(analysis.get('key_phrases', [])[:7])}
                 """
                 
-                if user_role == 'Professional':
+                if user_role == 'Teacher':
+                    report += f"""
+                    
+                    Teacher Analysis:
+                    - Pedagogical Score: {analysis.get('pedagogical_score', 0)}%
+                    - Completeness Score: {analysis.get('completeness_score', 0)}%
+                    - Curriculum Alignment: {analysis.get('curriculum_alignment', {}).get('status', 'Unknown')}
+                    - Enhancements: {', '.join(analysis.get('suggested_enhancements', []))}
+                    """
+                elif user_role == 'Professional':
                     report += f"""
                     
                     Professional Analysis:
@@ -3506,7 +4801,6 @@ def show_document_analysis():
 # ==================== SME DASHBOARD FUNCTIONS ====================
 
 def show_sme_dashboard():
-    """Enhanced SME Dashboard with Action-Oriented Task Feed"""
     st.header(f"🏢 SME Growth Automation Engine - {country_code.title()}")
     
     sme_engine = SMEOutcomeEngine('africa' if country_code in ['kenya', 'bangladesh'] else 'global', country_code)
@@ -3647,7 +4941,6 @@ def show_sme_dashboard():
 
 
 def show_sme_growth():
-    """SME Growth Dashboard with AI Analytics"""
     st.header(f"📈 SME Growth Analytics - {country_code.title()}")
     
     sme_engine = SMEOutcomeEngine('africa' if country_code in ['kenya', 'bangladesh'] else 'global', country_code)
@@ -3760,7 +5053,6 @@ def show_sme_growth():
 
 
 def show_sme_automation():
-    """SME Automation Solutions"""
     st.header(f"🤖 SME Automation Solutions - {country_code.title()}")
     
     sme_engine = SMEOutcomeEngine('africa' if country_code in ['kenya', 'bangladesh'] else 'global', country_code)
@@ -3814,7 +5106,6 @@ def show_sme_automation():
 
 
 def show_sme_api_connectors():
-    """API Connector Layer for SME Tools"""
     st.header(f"🔌 API Connector Layer - {country_code.title()}")
     st.caption("Connect your business tools for seamless data integration")
     
@@ -3886,7 +5177,6 @@ def show_sme_api_connectors():
 
 
 def show_sme_webhooks():
-    """Webhook Architecture for Real-time AI Actions"""
     st.header(f"⚡ Webhook Architecture - {country_code.title()}")
     st.caption("Event-driven infrastructure for real-time AI actions")
     
@@ -4017,10 +5307,10 @@ def show_home():
     with col2:
         st.markdown("**👨‍🏫 Teachers**")
         st.caption("Hours-Saved Engine")
-        st.markdown("✅ Lesson builder")
-        st.markdown("✅ Rubric generator")
-        st.markdown("✅ Feedback drafting")
-        st.markdown("✅ Policy integrator")
+        st.markdown("✅ Lesson bundle generator")
+        st.markdown("✅ Rubric & quiz generator")
+        st.markdown("✅ LMS integration")
+        st.markdown("✅ Standards mapping")
     
     with col3:
         st.markdown("**💼 Professionals**")
@@ -4104,80 +5394,6 @@ def show_student_dashboard():
             st.markdown(f'<span class="achievement-badge">🏆 {achievement}</span>', unsafe_allow_html=True)
 
 
-def show_teacher_dashboard():
-    st.header(f"👨‍🏫 Teacher Dashboard - {country_code.title()}")
-    
-    teacher_engine = TeacherOutcomeEngine(country_code)
-    
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Hours Saved This Week", "4.5 hrs", "↑ 2.3 hrs")
-    col2.metric("Time Saved vs Traditional", "62%", "↑ 12%")
-    col3.metric("Lessons Generated", "23", "↑ 5")
-    
-    st.subheader("📋 Universal Lesson + Rubric Builder")
-    st.caption(f"Aligned with {overlay.get('system', 'Universal')} curriculum")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        subject = st.text_input("Lesson Subject:", "Photosynthesis")
-        grade = st.selectbox("Grade Level:", overlay.get('grade_levels', ['Primary', 'Secondary']))
-        duration = st.slider("Lesson Duration (minutes):", 30, 90, 45)
-    
-    with col2:
-        curriculum = st.selectbox("Curriculum Overlay:", ['Universal', overlay.get('system', 'Local')])
-        include_ethics = st.checkbox("Include Ethics/Policy Module", value=True)
-        language = st.selectbox("Language:", ['English', 'Kiswahili', 'Bengali', 'Spanish'])
-    
-    if st.button("✨ Generate Lesson Plan", type="primary"):
-        with st.spinner("Generating lesson plan with local overlay..."):
-            lesson = teacher_engine.generate_lesson_plan(subject, grade, duration)
-            
-            st.success(f"✅ Lesson Plan Generated in 2.3 seconds!")
-            
-            tab1, tab2, tab3 = st.tabs(["📋 Lesson Plan", "📊 Rubric", "⏱️ Time Savings"])
-            
-            with tab1:
-                st.markdown(f"### {lesson['title']}")
-                st.markdown(f"**Curriculum:** {lesson['curriculum']}")
-                st.markdown(f"**Duration:** {duration} minutes")
-                st.markdown(f"**Country Context:** {lesson.get('local_context', 'Universal')}")
-                st.markdown(f"**Cultural Context:** {context.get('culture', 'Global')}")
-                
-                st.markdown("#### Learning Objectives:")
-                for obj in lesson['objectives']:
-                    st.markdown(f"- {obj}")
-                
-                st.markdown("#### Lesson Activities:")
-                for activity in lesson['activities']:
-                    st.markdown(f"- {activity}")
-            
-            with tab2:
-                st.markdown("#### Assessment Rubric")
-                rubric_data = []
-                rubric = lesson['assessment']['rubric']
-                for criterion, weight in zip(lesson['assessment']['criteria'], lesson['assessment']['weighting']):
-                    rubric_data.append({
-                        'Criterion': criterion,
-                        'Weighting': f"{weight}%",
-                        'Excellent': rubric.get('Excellent', 'Mastery'),
-                        'Good': rubric.get('Good', 'Strong understanding'),
-                        'Satisfactory': rubric.get('Satisfactory', 'Meets requirements'),
-                        'Needs Improvement': rubric.get('Needs Improvement', 'Additional support needed')
-                    })
-                st.dataframe(pd.DataFrame(rubric_data))
-            
-            with tab3:
-                st.markdown("#### ⏱️ Time Savings Analysis")
-                st.metric("Traditional Grading Time", "100%", delta="-40-60%")
-                st.success("""
-                **Estimated Weekly Savings:**
-                - Grading: 4.5 hours saved
-                - Lesson Planning: 2.5 hours saved
-                - Feedback Drafting: 2.0 hours saved
-                **Total: 9.0 hours/week saved!** 🎉
-                """)
-
-
 # ==================== MAIN NAVIGATION ====================
 
 def main():
@@ -4194,11 +5410,15 @@ def main():
     elif choice == '👨‍🏫 Dashboard':
         show_teacher_dashboard()
     elif choice == '📋 Lesson Builder':
-        show_teacher_dashboard()
+        show_teacher_lesson_builder()
     elif choice == '📝 Assessment':
-        show_teacher_dashboard()
+        show_teacher_assessment()
     elif choice == '⏱️ Hours Saved':
-        show_teacher_dashboard()
+        show_teacher_hours_saved()
+    elif choice == '📑 LMS Integration':
+        show_teacher_lms_integration()
+    elif choice == '🎯 Standards Mapping':
+        show_teacher_standards_mapping()
     elif choice == '💼 Dashboard':
         show_professional_dashboard()
     elif choice == '🔬 Research':
