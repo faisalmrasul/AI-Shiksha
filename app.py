@@ -4121,6 +4121,64 @@ def show_student_practice():
         else:
             st.warning("Please enter some work to evaluate.")
 
+def _show_text_mastery_tree(tree):
+    """Display mastery tree as text when networkx/matplotlib are not available."""
+    st.markdown("### 📋 Concept Status")
+    
+    # Group by status for better visualization
+    grouped = {'mastered': [], 'in_progress': [], 'locked': []}
+    for concept, data in tree.items():
+        status = data['status']
+        if status in grouped:
+            grouped[status].append(concept)
+    
+    # Display mastered concepts
+    if grouped['mastered']:
+        st.success("✅ **Mastered Concepts:**")
+        for concept in grouped['mastered']:
+            prereqs = tree[concept]['prerequisites']
+            prereq_str = f" (prereqs: {', '.join(prereqs)})" if prereqs else ""
+            st.markdown(f"- {concept.replace('_', ' ').title()}{prereq_str}")
+        st.divider()
+    
+    # Display in-progress concepts
+    if grouped['in_progress']:
+        st.warning("🟡 **In Progress Concepts:**")
+        for concept in grouped['in_progress']:
+            prereqs = tree[concept]['prerequisites']
+            prereq_str = f" (prereqs: {', '.join(prereqs)})" if prereqs else ""
+            st.markdown(f"- {concept.replace('_', ' ').title()}{prereq_str}")
+        st.divider()
+    
+    # Display locked concepts
+    if grouped['locked']:
+        st.info("🔒 **Locked Concepts (prerequisites needed):**")
+        for concept in grouped['locked']:
+            prereqs = tree[concept]['prerequisites']
+            if prereqs:
+                missing = [p for p in prereqs if tree.get(p, {}).get('status') != 'mastered']
+                if missing:
+                    st.markdown(f"- {concept.replace('_', ' ').title()} (needs: {', '.join(missing)})")
+                else:
+                    st.markdown(f"- {concept.replace('_', ' ').title()}")
+        st.divider()
+    
+    # Show progress stats
+    total = len(tree)
+    mastered = len(grouped['mastered'])
+    in_progress = len(grouped['in_progress'])
+    locked = len(grouped['locked'])
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric("📊 Total Concepts", total)
+    col2.metric("✅ Mastered", mastered, f"{mastered/total*100:.1f}%" if total > 0 else "0%")
+    col3.metric("🟡 In Progress", in_progress, f"{in_progress/total*100:.1f}%" if total > 0 else "0%")
+    
+    # Progress bar
+    if total > 0:
+        progress = mastered / total
+        st.progress(progress, text=f"Overall Progress: {progress*100:.1f}%")
+
 def show_student_progress():
     """Enhanced progress view with Visual Mastery Trees and gap analysis."""
     st.header(f"📊 Progress Tracking - {country_code.title()}")
@@ -4133,28 +4191,45 @@ def show_student_progress():
     
     tree = engine.get_mastery_tree()
     
-    # Create a simple networkx graph for visualization
-    G = nx.DiGraph()
-    for concept, data in tree.items():
-        G.add_node(concept, status=data['status'])
-        for prereq in data['prerequisites']:
-            G.add_edge(prereq, concept)
-    
-    # Color mapping
-    color_map = {
-        'locked': '#eeeeee',
-        'in_progress': '#ffcc80',
-        'mastered': '#81c784'
-    }
-    
-    node_colors = [color_map.get(data['status'], '#eeeeee') for _, data in tree.items()]
-    
-    # Draw the graph
-    fig, ax = plt.subplots(figsize=(10, 6))
-    pos = nx.spring_layout(G, seed=42)
-    nx.draw(G, pos, with_labels=True, node_color=node_colors, 
-            node_size=1500, font_size=8, arrows=True, ax=ax)
-    st.pyplot(fig)
+    # Check if networkx and matplotlib are available AND properly imported
+    try:
+        if HAS_NETWORKX and HAS_MATPLOTLIB and nx is not None and plt is not None:
+            # Create a simple networkx graph for visualization
+            G = nx.DiGraph()
+            for concept, data in tree.items():
+                G.add_node(concept, status=data['status'])
+                for prereq in data['prerequisites']:
+                    G.add_edge(prereq, concept)
+            
+            # Color mapping
+            color_map = {
+                'locked': '#eeeeee',
+                'in_progress': '#ffcc80',
+                'mastered': '#81c784'
+            }
+            
+            node_colors = []
+            for concept in G.nodes():
+                status = tree.get(concept, {}).get('status', 'locked')
+                node_colors.append(color_map.get(status, '#eeeeee'))
+            
+            # Draw the graph
+            fig, ax = plt.subplots(figsize=(10, 6))
+            pos = nx.spring_layout(G, seed=42)
+            nx.draw(G, pos, with_labels=True, node_color=node_colors, 
+                    node_size=1500, font_size=8, arrows=True, ax=ax)
+            st.pyplot(fig)
+        else:
+            # Libraries not available, show text view
+            st.info("📦 **Visual graph libraries not available.**")
+            st.caption("To enable visual knowledge graphs, run: `pip install networkx matplotlib`")
+            st.divider()
+            _show_text_mastery_tree(tree)
+    except Exception as e:
+        # Any error with graph rendering, fallback to text view
+        st.warning(f"⚠️ Could not render visual knowledge graph: {str(e)[:100]}...")
+        st.info("📋 Displaying text-based view instead:")
+        _show_text_mastery_tree(tree)
     
     # Gap Analysis
     st.divider()
@@ -4192,7 +4267,7 @@ def show_student_progress():
     
     # Push notification preference
     st.caption("📢 Push notifications are simulated. In production, this would integrate with your device.")
-
+    
 def show_student_achievements():
     """Display achievements and gamification."""
     st.header(f"🏆 Achievements - {country_code.title()}")
