@@ -886,5 +886,4 @@ class ProfessionalOutcomeEngine:
                     'Perform statistical analysis',
                     'Create visualizations',
                     'Interpret results and suggest actions'
-                ],
-                'output': 'Comprehensive analytics dashboard',
+               
