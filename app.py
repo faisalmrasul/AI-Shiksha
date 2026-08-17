@@ -10,10 +10,19 @@ import pandas as pd
 from datetime import datetime
 import hashlib
 import io
-import PyPDF2
-import docx
 import re
 from typing import Dict, List, Any, Optional
+
+# Try to import PDF and DOCX libraries with fallback
+try:
+    import PyPDF2
+except ImportError:
+    PyPDF2 = None
+
+try:
+    import docx
+except ImportError:
+    docx = None
 
 # ==================== DOCUMENT INTELLIGENCE ENGINE ====================
 
@@ -32,11 +41,15 @@ class DocumentIntelligenceEngine:
             text = ""
             
             if file_extension == 'pdf':
+                if PyPDF2 is None:
+                    return "PDF support requires PyPDF2. Please install: pip install PyPDF2"
                 pdf_reader = PyPDF2.PdfReader(io.BytesIO(uploaded_file.read()))
                 for page in pdf_reader.pages:
                     text += page.extract_text() + "\n"
             
             elif file_extension == 'docx':
+                if docx is None:
+                    return "DOCX support requires python-docx. Please install: pip install python-docx"
                 doc = docx.Document(io.BytesIO(uploaded_file.read()))
                 for para in doc.paragraphs:
                     text += para.text + "\n"
@@ -45,7 +58,7 @@ class DocumentIntelligenceEngine:
                 text = uploaded_file.read().decode('utf-8')
             
             else:
-                return f"Unsupported file format: {file_extension}"
+                return f"Unsupported file format: {file_extension}. Please upload PDF, DOCX, TXT, CSV, or JSON."
             
             return text.strip() if text else "No text could be extracted from the document."
         
@@ -116,7 +129,7 @@ class DocumentIntelligenceEngine:
         
         return phrases[:7]  # Return top 7 key phrases
     
-    def _analyze_sentiment(self, text: str) -> Dict[str, float]:
+    def _analyze_sentiment(self, text: str) -> Dict[str, Any]:
         """Basic sentiment analysis"""
         positive_words = {'good', 'great', 'excellent', 'positive', 'achievement', 'success', 'improve', 'growth', 
                          'happy', 'satisfied', 'excited', 'motivated', 'enjoy', 'love', 'best', 'outstanding'}
@@ -201,7 +214,7 @@ class DocumentIntelligenceEngine:
         topics = self._extract_topics(text)
         
         return {
-            'academic_language_score': round(min(100, (academic_count / len(words) * 1000)), 2),
+            'academic_language_score': round(min(100, (academic_count / len(words) * 1000)) if words else 0, 2),
             'topics_mentioned': topics[:5],
             'suggested_improvements': self._suggest_student_improvements(text, topics)
         }
@@ -216,7 +229,7 @@ class DocumentIntelligenceEngine:
         ped_count = sum(1 for w in words if w in ped_keywords)
         
         return {
-            'pedagogical_score': round(min(100, (ped_count / len(words) * 1000)), 2),
+            'pedagogical_score': round(min(100, (ped_count / len(words) * 1000)) if words else 0, 2),
             'curriculum_alignment': self._check_curriculum_alignment(text),
             'suggested_enhancements': self._suggest_teacher_enhancements(text)
         }
@@ -231,7 +244,7 @@ class DocumentIntelligenceEngine:
         prof_count = sum(1 for w in words if w in prof_keywords)
         
         return {
-            'professional_score': round(min(100, (prof_count / len(words) * 1000)), 2),
+            'professional_score': round(min(100, (prof_count / len(words) * 1000)) if words else 0, 2),
             'business_context': self._extract_business_context(text),
             'actionable_insights': self._extract_actionable_insights(text)
         }
@@ -246,7 +259,7 @@ class DocumentIntelligenceEngine:
         sme_count = sum(1 for w in words if w in sme_keywords)
         
         return {
-            'business_score': round(min(100, (sme_count / len(words) * 1000)), 2),
+            'business_score': round(min(100, (sme_count / len(words) * 1000)) if words else 0, 2),
             'growth_opportunities': self._identify_growth_opportunities(text),
             'automation_candidates': self._identify_automation_candidates(text)
         }
@@ -278,9 +291,9 @@ class DocumentIntelligenceEngine:
     def _suggest_student_improvements(self, text: str, topics: List[str]) -> List[str]:
         """Suggest improvements for student work"""
         suggestions = []
+        words = text.split()
         
         # Check length
-        words = text.split()
         if len(words) < 100:
             suggestions.append("Consider expanding your analysis with more depth and examples.")
         elif len(words) > 1000:
@@ -782,6 +795,4 @@ class StudentOutcomeEngine:
         
         # Country-specific grading scales
         grading_scales = {
-            'kenya': {90: 'A (Excellent)', 75: 'B (Good)', 60: 'C (Satisfactory)', 45: 'D (Needs Improvement)', 0: 'E (Remedial)'},
-            'bangladesh': {80: 'A+ (Excellent)', 70: 'A (Good)', 60: 'A- (Satisfactory)', 50: 'B (Average)', 0: 'C (Needs Improvement)'},
-            'usa': {90: 'A', 80: 'B', 70: 'C', 60
+            'kenya': {90: 'A (Excellent
