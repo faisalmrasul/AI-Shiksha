@@ -1,80 +1,116 @@
-# 🌍 AI Shiksha - Global Education Platform
+# 🌍 AI Shiksha - Universal Core + Local Overlay Platform
 
-## Universal Core + Local Overlay Architecture
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ai-shiksha.streamlit.app)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-AI Shiksha is a revolutionary global education platform built on a **Universal Core + Local Overlay** architecture. It provides personalized learning experiences for students, teachers, professionals, and SME business owners across multiple countries while respecting local curriculum requirements and cultural contexts.
+**AI Shiksha** is a revolutionary, AI-powered educational platform built for global scalability with country-specific curriculum overlays. It serves four distinct user segments with specialized intelligence engines:
 
----
+- 🎓 **Students** - Adaptive learning with spaced repetition, Socratic AI, and visual mastery tracking
+- 👨‍🏫 **Teachers** - Lesson planning, assessment generation, and time-saving analytics
+- 💼 **Professionals** - Research, portfolio analysis, and citation management
+- 🏢 **SME Business Owners** - Growth automation, predictive analytics, and action-oriented task feeds
 
-## 📋 Table of Contents
+## 🚀 Live Demo
 
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Supported Countries](#supported-countries)
-- [User Segments](#user-segments)
-- [Document Intelligence](#document-intelligence)
-- [Installation](#installation)
-- [Usage Guide](#usage-guide)
-- [Technology Stack](#technology-stack)
-- [Future Roadmap](#future-roadmap)
-- [Contributing](#contributing)
-- [License](#license)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ai-shiksha.streamlit.app)
 
----
+## ✨ Key Features
 
-## Overview
+### 🎓 Student Intelligence Engine
+- **Spaced Repetition Engine**: Memory-retention algorithms (SM-2 based) that trigger review prompts right before concept decay
+- **Prerequisite Knowledge Graphs**: Visual node-based maps showing subject dependencies (e.g., Factoring → Quadratic Equations)
+- **Multimodal OCR Processing**: Upload images of handwritten math, diagrams, or textbook pages
+- **Socratic AI Guardrails**: System prompts that prevent direct answers, providing hints, analogies, and step-by-step guidance
+- **Dynamic Difficulty Balancer**: Breaks down sub-steps after wrong attempts, escalates challenges after win streaks
+- **Voice-First Active Recall**: Simulated speech-to-text pipeline for verbal comprehension evaluation
+- **Visual Mastery Trees**: Interactive node-map interfaces tracking concept status (locked, in-progress, mastered)
+- **Habit & Streak Mechanics**: Daily streak tracking with repair buffer (1-day forgiveness)
+- **Instant Step Evaluation**: Line-by-line feedback on submitted work
+- **Latent Knowledge Gap Tracking**: Measures solution speed, attempts, and confidence to surface hidden weaknesses
+- **COPPA/FERPA Data Isolation**: Zero data retention - student data never saved or used for AI training
+- **Contextual Content Shields**: Blocks non-academic, cheating, or inappropriate prompts
 
-AI Shiksha delivers **context-aware AI education** with a portable core curriculum that works across all education systems, enhanced with country-specific overlays for localized content, exams, and cultural context.
+### 👨‍🏫 Teacher Intelligence Engine
+- **Multi-Asset Lesson Bundle Generator**: One-click generation of lesson plans, slide outlines, worksheets, and answer keys
+- **Modular Block Editor**: Edit, swap, or regenerate individual lesson sections
+- **One-Tap Accommodation Toggles**: IEP/504 modifications, sentence starters, ELL translations
+- **Dynamic Lexile Adjuster**: Rewrite text at different reading levels (beginner to expert)
+- **Rubric Generator**: Create tiered grading rubrics with customizable criteria and weightings
+- **Quiz Generator**: Auto-generate quizzes with multiple question types
+- **Batch Feedback Assistant**: Generate feedback for multiple students with approval workflow
+- **Time-Saved Dashboard**: Analytics tracking hours recovered on lesson planning, grading, and admin work
+- **LMS Integration**: Connect to Google Classroom, Canvas, Schoology, and Microsoft Teams
+- **Curriculum Standards Mapping**: Auto-tag content to Common Core, NGSS, TEKS, CBC, and NCTB standards
+- **Parent & Sub-Plan Generators**: One-click drafting of parent updates and substitute teacher guides
+- **Zero-PII Compliance Layer**: Client-side redaction of student names and data isolation
 
-### 🌟 Mission
-To democratize quality education globally by combining universal learning standards with local curriculum requirements, making AI-powered education accessible to everyone.
+### 💼 Professional Intelligence Engine
+- **Hybrid Search Engine**: Vector + keyword (BM25) retrieval across documents
+- **Audit-Linked Citation Engine**: Verify claims against source documents with page-level citations
+- **Code-Executing Data Sandbox**: Run quantitative analysis in a sandboxed Python environment
+- **Portfolio Intelligence**: Real-time portfolio tracking with sector exposure analysis
+- **Macro Stress-Testing**: Simulate macroeconomic shocks against portfolios
+- **24/7 Asset Watchdogs**: Automated agents scanning earnings, regulatory filings, and market news
+- **One-Click Deliverable Generator**: Turn research notes into professional investment memos, client tear sheets, and research notes
+- **Split-Screen Workspace**: Dual-pane interface with working notes and source documents
+- **Automated Table Extraction**: Extract tables from PDFs into Excel-ready format
 
-### 🎯 Vision
-Create a world where every learner, regardless of location or background, has access to personalized, AI-powered education that respects their cultural context and prepares them for global opportunities.
+### 🏢 SME Growth Automation Engine
+- **Predictive Analytics**: Cash flow forecasting, customer churn prediction, inventory depletion forecasts
+- **Action-Oriented Task Feed**: Priority-ranked recommendations based on real-time business data
+- **AI Business Assistant**: Natural language queries about business data (RAG)
+- **Automation Solutions**: Industry-specific automation plans (retail, service, agriculture, manufacturing, tech)
+- **API Connector Layer**: Connect to Stripe, QuickBooks, Shopify, Toast POS, and Jobber
+- **Webhook Architecture**: Event-driven infrastructure for real-time AI actions
+- **Proactive Push Delivery**: Automated digests and alerts via WhatsApp, SMS, and Email
+- **Payment Integration**: Support for M-Pesa, bKash, PayPal, Stripe, and regional payment rails
 
----
-
-## Key Features
-
-### 🎓 For Students
-- **Adaptive Practice** - Questions that adapt to your skill level (Easy/Medium/Hard)
-- **Socratic Learning** - Hints and guided discovery approach
-- **Progress Tracking** - Visual dashboards with performance metrics
-- **Achievement System** - Gamified learning with badges and streaks
-- **Document Analysis** - Upload essays/assignments for AI feedback
-- **Country-Specific Exam Prep** - Practice with local exam styles (KCPE, KCSE, GCSE, A-Levels, SAT, etc.)
-- **Grade Projection** - Get projected grades based on local grading scales
-
-### 👨‍🏫 For Teachers
-- **Lesson Plan Generator** - AI-powered lesson creation in seconds
-- **Rubric Builder** - Auto-generated assessment rubrics
-- **Hours Saved Dashboard** - Track time saved through automation
-- **Curriculum Alignment** - Ensure content matches local standards
-- **Document Analysis** - Upload and analyze curriculum documents
-- **Multi-Language Support** - Generate content in multiple languages
-- **Cultural Context Integration** - Lessons that respect local values
-
-### 💼 For Professionals
-- **AI Workflow Generator** - Automate research, marketing, and analytics
-- **Career Acceleration Lab** - Build portfolio artifacts
-- **Research Synthesis** - AI-powered research assistance
-- **Business Context Analysis** - Extract insights from professional documents
-- **Actionable Insights** - Get specific recommendations from your documents
-- **Industry-Specific Tracks** - Tailored content for your domain
-
-### 🏢 For SME Business Owners
-- **Growth Automation Engine** - AI-powered business automation
-- **Marketing Automation** - Automated campaigns with local context
-- **Payment Integration** - Multi-rail payment systems (M-Pesa, bKash, PayPal, etc.)
-- **Customer Support Chatbots** - AI-powered customer service
-- **Document Analysis** - Upload business plans for AI analysis
-- **Growth Opportunities** - Identify expansion opportunities
-- **Inventory Management** - Automated inventory tracking and reordering
-
----
-
-## Architecture
+## 🏗️ Architecture
 
 ### Universal Core
-The foundation that works across all education systems:
+The platform is built on a **Universal Core** that provides foundational subjects and competencies portable across all educational systems:
+
+- Mathematics, English Language, Basic Science, Geography, General Knowledge, Applied AI
+- Critical Thinking, Communication, Collaboration, Creativity, Digital Literacy
+
+### Local Curriculum Overlay
+Country-specific overlays adapt the Universal Core to local educational systems:
+
+- **Kenya**: CBC (Competency Based Curriculum) with KNEC/KICD boards
+- **Bangladesh**: National Curriculum (NCTB) with multiple examination boards
+- **USA**: Common Core State Standards with NGSS
+- **UK**: National Curriculum for England with GCSE and A-Levels
+
+### Intelligence Engines
+Four specialized engines serve each user segment:
+
+| Engine | Purpose | Key Technology |
+|--------|---------|----------------|
+| Student Outcome Engine | Adaptive learning & progress tracking | Spaced repetition, Knowledge graphs, Socratic AI |
+| Teacher Intelligence Engine | Lesson planning & time savings | Bundle generation, LMS integration, Standards mapping |
+| Professional Intelligence Engine | Research & portfolio management | Hybrid search, Citation tracking, Portfolio analytics |
+| SME Growth Automation Engine | Business automation & analytics | Predictive AI, Webhooks, API connectors |
+
+## 🛠️ Technology Stack
+
+| Component | Technology |
+|-----------|------------|
+| Framework | Streamlit |
+| Language | Python 3.10+ |
+| Data Processing | Pandas, NumPy |
+| Visualization | NetworkX, Matplotlib (optional) |
+| Document Processing | PyPDF2, python-docx |
+| Data Models | Dataclasses, Enums |
+| Analytics | Custom AI/ML algorithms |
+
+## 📦 Installation
+
+### Prerequisites
+- Python 3.10 or higher
+- pip package manager
+
+### Step 1: Clone the Repository
+```bash
+git clone https://github.com/yourusername/ai-shiksha.git
+cd ai-shiksha
