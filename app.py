@@ -136,6 +136,21 @@ def apply_custom_css():
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+    
+    /* Context input styling */
+    .context-input {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #e9ecef;
+        margin: 10px 0;
+    }
+    .context-input textarea {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+        padding: 10px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -162,7 +177,15 @@ def init_session_state():
         'total_questions_answered': 0,
         'correct_answers': 0,
         'lesson_generation_count': 0,
-        'workflow_generation_count': 0
+        'workflow_generation_count': 0,
+        # Context storage for various engines
+        'student_context': {},
+        'teacher_context': {},
+        'professional_context': {},
+        'sme_context': {},
+        'generated_plans': [],
+        'generated_workflows': [],
+        'generated_automations': []
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -391,491 +414,576 @@ class LocalCurriculumOverlay:
         overlay = LocalCurriculumOverlay.get_overlay(country_code)
         return overlay.get('grade_levels', ['Primary', 'Secondary'])
 
-# ==================== SEGMENT-SPECIFIC OUTCOME ENGINES ====================
+# ==================== CONTEXT COLLECTORS ====================
 
-class StudentOutcomeEngine:
-    """Student - Grade & Exam Outcomes Engine"""
+class ContextCollector:
+    """Collects user context for generating personalized plans"""
+    
+    @staticmethod
+    def collect_student_context():
+        """Collect student-specific context"""
+        with st.container():
+            st.markdown("### 📝 Student Learning Context")
+            st.markdown("Provide details to personalize your learning experience")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                learning_goal = st.text_area(
+                    "🎯 What are your learning goals?",
+                    placeholder="e.g., I want to improve my math skills, prepare for exams, or learn AI basics...",
+                    height=80
+                )
+                
+                current_level = st.select_slider(
+                    "📊 Current proficiency level:",
+                    options=["Beginner", "Intermediate", "Advanced", "Expert"],
+                    value="Intermediate"
+                )
+                
+                topics_interest = st.multiselect(
+                    "📚 Topics you're interested in:",
+                    ["Algebra", "Geometry", "Statistics", "Reading", "Writing", 
+                     "Grammar", "Biology", "Chemistry", "Physics", "Geography"],
+                    default=["Algebra", "Reading"]
+                )
+            
+            with col2:
+                learning_style = st.selectbox(
+                    "🧠 Preferred learning style:",
+                    ["Visual", "Auditory", "Reading/Writing", "Kinesthetic", "Mixed"]
+                )
+                
+                time_available = st.slider(
+                    "⏰ Time available for learning (hours/week):",
+                    min_value=1,
+                    max_value=20,
+                    value=5
+                )
+                
+                challenges = st.text_area(
+                    "⚠️ Challenges you're facing:",
+                    placeholder="e.g., Difficulty understanding concepts, lack of practice, exam anxiety...",
+                    height=80
+                )
+            
+            # Additional context
+            st.markdown("#### 🎯 Specific Goals")
+            short_term_goal = st.text_input(
+                "Short-term goal (1 month):",
+                placeholder="e.g., Pass math exam, improve writing skills..."
+            )
+            
+            long_term_goal = st.text_input(
+                "Long-term goal (6 months - 1 year):",
+                placeholder="e.g., Graduate with honors, start a career in AI..."
+            )
+            
+            # Store context
+            context = {
+                'learning_goal': learning_goal,
+                'current_level': current_level,
+                'topics_interest': topics_interest,
+                'learning_style': learning_style,
+                'time_available': time_available,
+                'challenges': challenges,
+                'short_term_goal': short_term_goal,
+                'long_term_goal': long_term_goal,
+                'collected_at': datetime.now().isoformat()
+            }
+            
+            st.session_state.student_context = context
+            
+            if st.button("💾 Save Learning Context", key="save_student_context"):
+                st.success("✅ Learning context saved successfully!")
+                st.balloons()
+            
+            return context
+    
+    @staticmethod
+    def collect_teacher_context():
+        """Collect teacher-specific context"""
+        with st.container():
+            st.markdown("### 📋 Teacher Planning Context")
+            st.markdown("Provide details to generate personalized lesson plans")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                subject_specialization = st.text_input(
+                    "📚 Subject you teach:",
+                    placeholder="e.g., Mathematics, Science, English..."
+                )
+                
+                class_size = st.number_input(
+                    "👥 Class size:",
+                    min_value=1,
+                    max_value=100,
+                    value=30
+                )
+                
+                grade_level = st.selectbox(
+                    "📊 Grade level:",
+                    ["PP1", "PP2", "Grade 1-3", "Grade 4-6", "Grade 7-9", 
+                     "Form 1-2", "Form 3-4", "K-5", "6-8", "9-12", "KS1-2", "KS3", "KS4-5"]
+                )
+            
+            with col2:
+                curriculum_track = st.selectbox(
+                    "📋 Curriculum track:",
+                    ["General", "Science", "Arts", "Technology", "Business"]
+                )
+                
+                student_needs = st.text_area(
+                    "🎯 Specific student needs:",
+                    placeholder="e.g., Diverse learning needs, special education, gifted students...",
+                    height=80
+                )
+                
+                resources_available = st.text_area(
+                    "📚 Resources available:",
+                    placeholder="e.g., Technology, textbooks, lab equipment...",
+                    height=80
+                )
+            
+            # Additional context
+            st.markdown("#### 🔧 Teaching Preferences")
+            teaching_style = st.selectbox(
+                "👨‍🏫 Teaching style:",
+                ["Traditional", "Interactive", "Project-based", "Flipped classroom", "Inquiry-based"]
+            )
+            
+            assessment_preference = st.selectbox(
+                "📝 Assessment preference:",
+                ["Formative", "Summative", "Mixed", "Continuous evaluation"]
+            )
+            
+            # Store context
+            context = {
+                'subject_specialization': subject_specialization,
+                'class_size': class_size,
+                'grade_level': grade_level,
+                'curriculum_track': curriculum_track,
+                'student_needs': student_needs,
+                'resources_available': resources_available,
+                'teaching_style': teaching_style,
+                'assessment_preference': assessment_preference,
+                'collected_at': datetime.now().isoformat()
+            }
+            
+            st.session_state.teacher_context = context
+            
+            if st.button("💾 Save Teaching Context", key="save_teacher_context"):
+                st.success("✅ Teaching context saved successfully!")
+                st.balloons()
+            
+            return context
+    
+    @staticmethod
+    def collect_professional_context():
+        """Collect professional-specific context"""
+        with st.container():
+            st.markdown("### 💼 Professional Development Context")
+            st.markdown("Provide details for career acceleration and workflow optimization")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                industry = st.selectbox(
+                    "🏢 Industry:",
+                    ["Technology", "Finance", "Healthcare", "Education", "Marketing", 
+                     "Consulting", "Manufacturing", "Retail", "Non-profit"]
+                )
+                
+                role = st.text_input(
+                    "👔 Your role:",
+                    placeholder="e.g., Data Analyst, Marketing Manager, Educator..."
+                )
+                
+                experience_level = st.select_slider(
+                    "📊 Experience level:",
+                    options=["Entry", "Junior", "Mid-level", "Senior", "Executive"],
+                    value="Mid-level"
+                )
+            
+            with col2:
+                skills_to_develop = st.multiselect(
+                    "🔧 Skills you want to develop:",
+                    ["Project Management", "Data Analysis", "Leadership", "Communication",
+                     "AI/ML", "Digital Marketing", "Financial Analysis", "Strategic Planning"],
+                    default=["Data Analysis", "AI/ML"]
+                )
+                
+                career_goals = st.text_area(
+                    "🎯 Career goals:",
+                    placeholder="e.g., Get promoted to management, transition to new industry...",
+                    height=80
+                )
+                
+                current_challenges = st.text_area(
+                    "⚠️ Current professional challenges:",
+                    placeholder="e.g., Automating workflows, managing teams, upskilling...",
+                    height=80
+                )
+            
+            # Additional context
+            st.markdown("#### 🚀 Professional Development Preferences")
+            time_investment = st.slider(
+                "⏰ Time available for professional development (hours/week):",
+                min_value=1,
+                max_value=20,
+                value=5
+            )
+            
+            learning_format = st.selectbox(
+                "📚 Preferred learning format:",
+                ["Self-paced online", "Live workshops", "Virtual conferences", "Mentorship", "Hybrid"]
+            )
+            
+            # Store context
+            context = {
+                'industry': industry,
+                'role': role,
+                'experience_level': experience_level,
+                'skills_to_develop': skills_to_develop,
+                'career_goals': career_goals,
+                'current_challenges': current_challenges,
+                'time_investment': time_investment,
+                'learning_format': learning_format,
+                'collected_at': datetime.now().isoformat()
+            }
+            
+            st.session_state.professional_context = context
+            
+            if st.button("💾 Save Professional Context", key="save_professional_context"):
+                st.success("✅ Professional context saved successfully!")
+                st.balloons()
+            
+            return context
+    
+    @staticmethod
+    def collect_sme_context():
+        """Collect SME-specific context"""
+        with st.container():
+            st.markdown("### 🏢 SME Business Growth Context")
+            st.markdown("Provide details for business automation and growth strategies")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                business_type = st.selectbox(
+                    "🏪 Business type:",
+                    ["Retail", "Service", "Agriculture", "Manufacturing", "Tech", "Hospitality"]
+                )
+                
+                business_size = st.select_slider(
+                    "👥 Business size:",
+                    options=["Solo", "2-5", "6-20", "21-50", "50+"],
+                    value="2-5"
+                )
+                
+                years_operating = st.number_input(
+                    "📅 Years in business:",
+                    min_value=1,
+                    max_value=50,
+                    value=3
+                )
+            
+            with col2:
+                primary_audience = st.text_input(
+                    "🎯 Primary target audience:",
+                    placeholder="e.g., Small businesses, students, parents..."
+                )
+                
+                business_goals = st.text_area(
+                    "🎯 Business goals:",
+                    placeholder="e.g., Increase revenue, expand to new markets, improve efficiency...",
+                    height=80
+                )
+                
+                pain_points = st.text_area(
+                    "⚠️ Current business pain points:",
+                    placeholder="e.g., Manual processes, customer acquisition, inventory management...",
+                    height=80
+                )
+            
+            # Additional context
+            st.markdown("#### 💰 Financial Context")
+            annual_revenue_range = st.selectbox(
+                "💰 Annual revenue range:",
+                ["Under 10K", "10K-50K", "50K-200K", "200K-1M", "1M+"]
+            )
+            
+            monthly_budget = st.number_input(
+                "💳 Monthly budget for automation/tools ($):",
+                min_value=0,
+                max_value=10000,
+                value=500
+            )
+            
+            # Store context
+            context = {
+                'business_type': business_type,
+                'business_size': business_size,
+                'years_operating': years_operating,
+                'primary_audience': primary_audience,
+                'business_goals': business_goals,
+                'pain_points': pain_points,
+                'annual_revenue_range': annual_revenue_range,
+                'monthly_budget': monthly_budget,
+                'collected_at': datetime.now().isoformat()
+            }
+            
+            st.session_state.sme_context = context
+            
+            if st.button("💾 Save Business Context", key="save_sme_context"):
+                st.success("✅ Business context saved successfully!")
+                st.balloons()
+            
+            return context
+
+# ==================== ENHANCED SEGMENT ENGINES ====================
+
+class EnhancedStudentOutcomeEngine(StudentOutcomeEngine):
+    """Enhanced student engine with context-aware features"""
     
     def __init__(self, country_code='kenya'):
-        self.country = country_code
-        self.overlay = LocalCurriculumOverlay.get_overlay(country_code)
-        self.context = LocalCurriculumOverlay.get_local_context(country_code)
-        self.question_pool = self._initialize_question_pool()
+        super().__init__(country_code)
+        self.context = st.session_state.get('student_context', {})
     
-    def _initialize_question_pool(self):
-        """Initialize a larger question pool"""
-        return {
-            'easy': [
-                {
-                    'id': 1,
-                    'subject': 'mathematics',
-                    'question': 'What is 5 + 7?',
-                    'options': ['10', '11', '12', '13'],
-                    'correct': '12',
-                    'explanation': '5 + 7 = 12',
-                    'socratic_hint': 'Count from 5: 6,7,8,9,10,11,12'
-                },
-                {
-                    'id': 2,
-                    'subject': 'english_language',
-                    'question': 'What is the plural of "child"?',
-                    'options': ['Childs', 'Children', 'Childrens', 'Childes'],
-                    'correct': 'Children',
-                    'explanation': 'The plural of "child" is "children"',
-                    'socratic_hint': 'Think about irregular plurals in English'
-                },
-                {
-                    'id': 3,
-                    'subject': 'basic_science',
-                    'question': 'What is the process by which plants make their own food?',
-                    'options': ['Respiration', 'Photosynthesis', 'Fermentation', 'Digestion'],
-                    'correct': 'Photosynthesis',
-                    'explanation': 'Plants use photosynthesis to convert sunlight into energy',
-                    'socratic_hint': 'Think about how plants use sunlight'
-                },
-                {
-                    'id': 4,
-                    'subject': 'geography',
-                    'question': 'Which is the largest continent by area?',
-                    'options': ['Africa', 'Asia', 'North America', 'Europe'],
-                    'correct': 'Asia',
-                    'explanation': 'Asia is the largest continent covering about 30% of Earth\'s land',
-                    'socratic_hint': 'Think about the size of different continents'
-                },
-                {
-                    'id': 5,
-                    'subject': 'general_knowledge',
-                    'question': 'What is the capital of Kenya?',
-                    'options': ['Nairobi', 'Mombasa', 'Kisumu', 'Eldoret'],
-                    'correct': 'Nairobi',
-                    'explanation': 'Nairobi is the capital city of Kenya',
-                    'socratic_hint': 'Think about major cities in East Africa'
-                }
-            ],
-            'medium': [
-                {
-                    'id': 6,
-                    'subject': 'mathematics',
-                    'question': 'What is 15 × 8?',
-                    'options': ['100', '120', '130', '150'],
-                    'correct': '120',
-                    'explanation': '15 × 8 = 120 (15 × 10 - 15 × 2 = 150 - 30 = 120)',
-                    'socratic_hint': 'Break it down: 15 × 10 = 150, then subtract 15 × 2 = 30'
-                },
-                {
-                    'id': 7,
-                    'subject': 'english_language',
-                    'question': 'Which word is a synonym for "happy"?',
-                    'options': ['Sad', 'Joyful', 'Angry', 'Tired'],
-                    'correct': 'Joyful',
-                    'explanation': '"Joyful" is a synonym for "happy"',
-                    'socratic_hint': 'Think about words that mean the same as happy'
-                },
-                {
-                    'id': 8,
-                    'subject': 'basic_science',
-                    'question': 'What is the chemical symbol for water?',
-                    'options': ['H2O', 'CO2', 'NaCl', 'HCl'],
-                    'correct': 'H2O',
-                    'explanation': 'Water is H2O - two hydrogen atoms and one oxygen atom',
-                    'socratic_hint': 'Think about what water is made of'
-                },
-                {
-                    'id': 9,
-                    'subject': 'geography',
-                    'question': 'Which country is known as the "Land of the Rising Sun"?',
-                    'options': ['China', 'Japan', 'South Korea', 'Thailand'],
-                    'correct': 'Japan',
-                    'explanation': 'Japan is known as the "Land of the Rising Sun"',
-                    'socratic_hint': 'Think about the meaning of the Japanese flag'
-                },
-                {
-                    'id': 10,
-                    'subject': 'general_knowledge',
-                    'question': 'What is the currency of Bangladesh?',
-                    'options': ['Rupee', 'Taka', 'Rial', 'Ringgit'],
-                    'correct': 'Taka',
-                    'explanation': 'Bangladeshi Taka is the currency of Bangladesh',
-                    'socratic_hint': 'Think about currencies in South Asia'
-                }
-            ],
-            'hard': [
-                {
-                    'id': 11,
-                    'subject': 'mathematics',
-                    'question': 'If 3x + 7 = 22, what is x?',
-                    'options': ['3', '5', '7', '9'],
-                    'correct': '5',
-                    'explanation': '3x = 22 - 7 = 15, x = 15/3 = 5',
-                    'socratic_hint': 'First, isolate the term with x'
-                },
-                {
-                    'id': 12,
-                    'subject': 'basic_science',
-                    'question': 'What is the process by which plants release water vapor?',
-                    'options': ['Transpiration', 'Photosynthesis', 'Respiration', 'Condensation'],
-                    'correct': 'Transpiration',
-                    'explanation': 'Transpiration is the process of water movement through plants and evaporation from leaves',
-                    'socratic_hint': 'Think about how plants lose water'
-                },
-                {
-                    'id': 13,
-                    'subject': 'mathematics',
-                    'question': 'What is the square root of 144?',
-                    'options': ['10', '11', '12', '13'],
-                    'correct': '12',
-                    'explanation': '12 × 12 = 144, so the square root of 144 is 12',
-                    'socratic_hint': 'Think about what number multiplied by itself gives 144'
-                },
-                {
-                    'id': 14,
-                    'subject': 'general_knowledge',
-                    'question': 'What is the largest desert in the world?',
-                    'options': ['Sahara', 'Gobi', 'Kalahari', 'Antarctic'],
-                    'correct': 'Antarctic',
-                    'explanation': 'The Antarctic Desert is the largest desert covering about 14 million km²',
-                    'socratic_hint': 'Think about the definition of a desert'
-                },
-                {
-                    'id': 15,
-                    'subject': 'geography',
-                    'question': 'Which river is the longest in the world?',
-                    'options': ['Amazon', 'Nile', 'Mississippi', 'Yangtze'],
-                    'correct': 'Amazon',
-                    'explanation': 'The Amazon River is approximately 6,400 km long, making it the longest in the world',
-                    'socratic_hint': 'Think about South America\'s largest river'
-                }
-            ]
+    def generate_personalized_plan(self):
+        """Generate a personalized learning plan based on context"""
+        context = self.context
+        
+        if not context:
+            return None
+        
+        plan = {
+            'title': f"Personalized Learning Plan for {context.get('current_level', 'Student')}",
+            'goals': context.get('learning_goal', 'Improve academic performance'),
+            'short_term_goal': context.get('short_term_goal', ''),
+            'long_term_goal': context.get('long_term_goal', ''),
+            'topics': context.get('topics_interest', ['General']),
+            'learning_style': context.get('learning_style', 'Mixed'),
+            'time_available': context.get('time_available', 5),
+            'challenges': context.get('challenges', ''),
+            'recommended_approach': self._generate_approach(),
+            'weekly_schedule': self._generate_schedule(),
+            'resources': self._generate_resources(),
+            'milestones': self._generate_milestones()
         }
-    
-    def get_adaptive_questions(self, subject, difficulty='medium'):
-        """Get adaptive questions based on student performance"""
-        # Filter questions by subject
-        questions = []
-        for q in self.question_pool.get(difficulty, []):
-            if subject.lower() in q['subject']:
-                q_copy = q.copy()
-                q_copy['country'] = self.country
-                q_copy['exam_style'] = self.overlay.get('national_exams', ['local'])[0]
-                q_copy['local_context'] = self.context
-                questions.append(LocalCurriculumOverlay.localize_question(q_copy, self.country))
-        
-        # If no questions found for subject, return generic ones
-        if not questions:
-            for q in self.question_pool.get(difficulty, []):
-                if q['subject'] == 'general_knowledge':
-                    q_copy = q.copy()
-                    q_copy['country'] = self.country
-                    q_copy['exam_style'] = self.overlay.get('national_exams', ['local'])[0]
-                    q_copy['local_context'] = self.context
-                    questions.append(LocalCurriculumOverlay.localize_question(q_copy, self.country))
-        
-        return questions[:3]  # Return up to 3 questions
-    
-    def track_progress(self, user_data):
-        """Track and visualize student progress"""
-        progress_metrics = {
-            'current_score': user_data.get('score', 0),
-            'streak': user_data.get('streak', 0),
-            'topics_mastered': user_data.get('mastered', []),
-            'areas_to_improve': user_data.get('weak_areas', []),
-            'projected_grade': self._calculate_projected_grade(user_data),
-            'grade_level': self.overlay.get('grade_levels', ['Unknown'])[0],
-            'questions_answered': st.session_state.total_questions_answered,
-            'accuracy': self._calculate_accuracy()
-        }
-        return progress_metrics
-    
-    def _calculate_accuracy(self):
-        """Calculate accuracy based on correct/total answers"""
-        if st.session_state.total_questions_answered == 0:
-            return 0
-        return (st.session_state.correct_answers / st.session_state.total_questions_answered) * 100
-    
-    def _calculate_projected_grade(self, user_data):
-        """Calculate projected grade based on performance"""
-        score = user_data.get('score', 0)
-        
-        # Country-specific grading scales
-        grading_scales = {
-            'kenya': {90: 'A (Excellent)', 75: 'B (Good)', 60: 'C (Satisfactory)', 45: 'D (Needs Improvement)', 0: 'E (Remedial)'},
-            'bangladesh': {80: 'A+ (Excellent)', 70: 'A (Good)', 60: 'A- (Satisfactory)', 50: 'B (Average)', 0: 'C (Needs Improvement)'},
-            'usa': {90: 'A', 80: 'B', 70: 'C', 60: 'D', 0: 'F'},
-            'uk': {70: 'A (First Class)', 60: 'B (Upper Second)', 50: 'C (Lower Second)', 40: 'D (Third)', 0: 'E (Fail)'}
-        }
-        
-        scale = grading_scales.get(self.country, {90: 'A', 75: 'B', 60: 'C', 45: 'D', 0: 'E'})
-        
-        for threshold, grade in sorted(scale.items(), reverse=True):
-            if score >= threshold:
-                return grade
-        return 'Needs Assessment'
-
-class TeacherOutcomeEngine:
-    """Teacher - Hours-Saved Engine"""
-    
-    def __init__(self, country_code='kenya'):
-        self.country = country_code
-        self.overlay = LocalCurriculumOverlay.get_overlay(country_code)
-        self.context = LocalCurriculumOverlay.get_local_context(country_code)
-        self.lesson_templates = self._initialize_lesson_templates()
-    
-    def _initialize_lesson_templates(self):
-        """Initialize lesson plan templates for different subjects"""
-        return {
-            'photosynthesis': {
-                'title': 'Photosynthesis: How Plants Make Food',
-                'grade': 'Grade 7',
-                'duration': 45,
-                'curriculum': 'Universal',
-                'objectives': [
-                    'Explain the process of photosynthesis',
-                    'Identify the key components needed for photosynthesis',
-                    'Describe the importance of photosynthesis for life on Earth'
-                ],
-                'activities': [
-                    'Interactive video demonstration (10 min)',
-                    'Group discussion and modeling (20 min)',
-                    'Diagram labeling and assessment (15 min)'
-                ]
-            },
-            'algebra': {
-                'title': 'Introduction to Algebra',
-                'grade': 'Grade 8',
-                'duration': 45,
-                'curriculum': 'Universal',
-                'objectives': [
-                    'Understand basic algebraic concepts',
-                    'Solve simple linear equations',
-                    'Apply algebra to real-world problems'
-                ],
-                'activities': [
-                    'Warm-up: Pattern recognition (10 min)',
-                    'Main: Hands-on equation solving (20 min)',
-                    'Closure: Real-world applications (15 min)'
-                ]
-            },
-            'grammar': {
-                'title': 'Mastering Grammar: Parts of Speech',
-                'grade': 'Grade 5',
-                'duration': 45,
-                'curriculum': 'Universal',
-                'objectives': [
-                    'Identify different parts of speech',
-                    'Use correct grammar in sentences',
-                    'Improve writing skills'
-                ],
-                'activities': [
-                    'Interactive grammar game (10 min)',
-                    'Worksheet practice (20 min)',
-                    'Creative writing exercise (15 min)'
-                ]
-            }
-        }
-    
-    def generate_lesson_plan(self, subject, grade, duration, curriculum='universal'):
-        """Generate lesson plan with local curriculum overlay"""
-        subject_lower = subject.lower()
-        
-        # Check if we have a template for this subject
-        template_key = None
-        for key in self.lesson_templates:
-            if key in subject_lower or subject_lower in key:
-                template_key = key
-                break
-        
-        if template_key:
-            template = self.lesson_templates[template_key]
-            plan = {
-                'title': template['title'],
-                'curriculum': overlay.get('system', 'Universal'),
-                'country': self.country,
-                'duration': duration,
-                'objectives': template['objectives'],
-                'activities': template['activities'],
-                'assessment': self._generate_assessment(subject)
-            }
-        else:
-            # Generate generic plan
-            plan = {
-                'title': f"{subject} Lesson - {grade}",
-                'curriculum': overlay.get('system', 'Universal'),
-                'country': self.country,
-                'duration': duration,
-                'objectives': self._generate_objectives(subject, grade),
-                'activities': self._generate_activities(subject, duration),
-                'assessment': self._generate_assessment(subject)
-            }
-        
-        # Add local context
-        if overlay:
-            plan['local_context'] = f"Aligned with {overlay.get('system')} ({overlay.get('code')})"
-            plan['language_support'] = f"Available in {overlay.get('language', 'English')}"
-            plan['cultural_context'] = self.context
         
         return plan
     
-    def _generate_objectives(self, subject, grade):
-        """Generate learning objectives with local context"""
+    def _generate_approach(self):
+        """Generate recommended learning approach"""
+        learning_style = self.context.get('learning_style', 'Mixed')
+        
+        approaches = {
+            'Visual': 'Use diagrams, charts, mind maps, and video content',
+            'Auditory': 'Use podcasts, lectures, discussions, and audio materials',
+            'Reading/Writing': 'Use textbooks, notes, articles, and written exercises',
+            'Kinesthetic': 'Use hands-on activities, role-plays, and practical exercises',
+            'Mixed': 'Combine visual, auditory, reading, and kinesthetic approaches'
+        }
+        
+        return approaches.get(learning_style, 'Balanced approach with various methods')
+    
+    def _generate_schedule(self):
+        """Generate weekly learning schedule"""
+        hours = self.context.get('time_available', 5)
+        
+        schedule = {
+            'weekly_hours': hours,
+            'daily_hours': round(hours / 5, 1) if hours > 0 else 0,
+            'recommended_session': '45 minutes per session',
+            'breakdown': [
+                f"{round(hours * 0.2, 1)} hours - Core concept learning",
+                f"{round(hours * 0.3, 1)} hours - Practice and exercises",
+                f"{round(hours * 0.2, 1)} hours - Review and revision",
+                f"{round(hours * 0.3, 1)} hours - Application and projects"
+            ]
+        }
+        
+        return schedule
+    
+    def _generate_resources(self):
+        """Generate recommended learning resources"""
+        country = self.country
+        topics = self.context.get('topics_interest', ['General'])
+        
+        resources = []
+        for topic in topics:
+            resources.append(f"{topic} - Localized materials for {country}")
+        
+        resources.extend([
+            "Interactive learning modules",
+            "Practice exercises with instant feedback",
+            "Peer learning opportunities",
+            "Progress tracking tools"
+        ])
+        
+        return resources
+    
+    def _generate_milestones(self):
+        """Generate learning milestones"""
+        return [
+            {"week": 1, "goal": "Complete diagnostic assessment", "progress": 0},
+            {"week": 2, "goal": "Master core concepts", "progress": 25},
+            {"week": 4, "goal": "Complete intermediate topics", "progress": 50},
+            {"week": 8, "goal": "Achieve proficiency target", "progress": 75},
+            {"week": 12, "goal": "Complete learning plan objectives", "progress": 100}
+        ]
+
+class EnhancedTeacherOutcomeEngine(TeacherOutcomeEngine):
+    """Enhanced teacher engine with context-aware features"""
+    
+    def __init__(self, country_code='kenya'):
+        super().__init__(country_code)
+        self.context = st.session_state.get('teacher_context', {})
+    
+    def generate_contextual_lesson_plan(self):
+        """Generate a lesson plan based on teacher context"""
+        context = self.context
+        
+        if not context:
+            return None
+        
+        subject = context.get('subject_specialization', 'General')
+        grade = context.get('grade_level', 'Grade 7')
+        
+        # Generate base plan
+        base_plan = self.generate_lesson_plan(subject, grade, 45)
+        
+        # Enhance with context
+        enhanced_plan = {
+            'title': f"{subject} Lesson Plan - {grade}",
+            'curriculum': overlay.get('system', 'Universal'),
+            'country': self.country,
+            'grade_level': grade,
+            'class_size': context.get('class_size', 30),
+            'duration': 45,
+            'teaching_style': context.get('teaching_style', 'Mixed'),
+            'assessment_preference': context.get('assessment_preference', 'Mixed'),
+            'objectives': self._generate_contextual_objectives(),
+            'activities': self._generate_contextual_activities(),
+            'assessment': self._generate_contextual_assessment(),
+            'differentiation': self._generate_differentiation_strategies(),
+            'resources_needed': self._generate_resource_list(),
+            'time_allocation': self._generate_time_allocation()
+        }
+        
+        return enhanced_plan
+    
+    def _generate_contextual_objectives(self):
+        """Generate objectives based on context"""
+        subject = self.context.get('subject_specialization', 'General')
+        grade = self.context.get('grade_level', 'Grade 7')
+        student_needs = self.context.get('student_needs', '')
+        
         objectives = [
-            f"Understand key concepts of {subject} at {grade} level",
+            f"Understand key concepts of {subject} for {grade} level",
             f"Apply {subject} knowledge to real-world problems",
             f"Develop critical thinking in {subject} context"
         ]
         
-        # Add local objectives based on country
-        if self.country == 'kenya':
-            objectives.extend([
-                "Demonstrate competency-based learning outcomes",
-                "Integrate Kenyan community values in learning"
-            ])
-        elif self.country == 'bangladesh':
-            objectives.extend([
-                "Develop skills aligned with Bangladesh National Curriculum",
-                "Apply learning to Bengali language and cultural context"
-            ])
-        elif self.country == 'usa':
-            objectives.extend([
-                "Meet Common Core State Standards",
-                "Develop college and career readiness skills"
-            ])
-        elif self.country == 'uk':
-            objectives.extend([
-                "Achieve National Curriculum objectives",
-                "Develop rigorous academic understanding"
-            ])
+        if 'diverse' in student_needs.lower():
+            objectives.append("Accommodate diverse learning needs with differentiated instruction")
+        
+        if 'gifted' in student_needs.lower():
+            objectives.append("Provide extension activities for advanced learners")
         
         return objectives
     
-    def _generate_activities(self, subject, duration):
-        """Generate lesson activities with local context"""
+    def _generate_contextual_activities(self):
+        """Generate activities based on context"""
+        teaching_style = self.context.get('teaching_style', 'Traditional')
+        class_size = self.context.get('class_size', 30)
+        
         activities = []
-        time_slots = []
         
-        # Split duration into segments
-        if duration <= 30:
-            time_slots = [10, 10, 10]
-        elif duration <= 45:
-            time_slots = [15, 20, 10]
+        if teaching_style in ['Interactive', 'Inquiry-based']:
+            activities.extend([
+                "Group discussion and collaborative problem-solving",
+                "Hands-on activities and experiments",
+                "Peer teaching and presentations"
+            ])
+        elif teaching_style in ['Project-based', 'Flipped classroom']:
+            activities.extend([
+                "Project work and independent research",
+                "Student-led presentations",
+                "Real-world application scenarios"
+            ])
         else:
-            time_slots = [15, 30, 15]
+            activities.extend([
+                "Direct instruction with clear explanations",
+                "Guided practice with immediate feedback",
+                "Independent practice and review"
+            ])
         
-        # Add local context to activities
-        local_examples = {
-            'kenya': 'using local examples from Kenyan agriculture, wildlife, and community',
-            'bangladesh': 'using local examples from Bangladeshi rivers, culture, and garment industry',
-            'usa': 'using local examples from American communities and innovation',
-            'uk': 'using local examples from British history and multicultural society'
-        }
-        
-        example_note = local_examples.get(self.country, 'using local examples')
-        
-        activities = [
-            f"Warm-up (0-{time_slots[0]} min): Introduction to {subject} {example_note}",
-            f"Main Activity ({time_slots[0]}-{time_slots[0]+time_slots[1]} min): Interactive learning session with group work",
-            f"Closure ({time_slots[0]+time_slots[1]}-{duration} min): Review and Q&A with local context application"
-        ]
+        # Adjust for class size
+        if class_size > 40:
+            activities.append("Use technology for large group engagement")
         
         return activities
     
-    def _generate_assessment(self, subject):
-        """Generate assessment rubric with country-specific standards"""
-        return {
-            'criteria': ['Understanding', 'Application', 'Analysis', 'Communication'],
-            'weighting': [30, 25, 25, 20],
-            'rubric': self._get_localized_rubric()
-        }
-    
-    def _get_localized_rubric(self):
-        """Get country-specific rubric descriptions"""
-        rubrics = {
-            'kenya': {
-                'Excellent': 'Exceeds competency expectations with community application',
-                'Good': 'Meets competency expectations with practical understanding',
-                'Satisfactory': 'Basic competency achieved',
-                'Needs Improvement': 'Requires additional support for competency'
-            },
-            'bangladesh': {
-                'Excellent': 'Outstanding understanding with Bengali context mastery',
-                'Good': 'Strong understanding with local application',
-                'Satisfactory': 'Meets curriculum requirements',
-                'Needs Improvement': 'Needs additional support for board standards'
-            },
-            'usa': {
-                'Excellent': 'Exceeds standards with creativity and insight',
-                'Good': 'Meets all standards with confidence',
-                'Satisfactory': 'Meets basic standards',
-                'Needs Improvement': 'Requires additional support for standards'
-            },
-            'uk': {
-                'Excellent': 'Exceptional understanding with depth and rigor',
-                'Good': 'Strong understanding with academic quality',
-                'Satisfactory': 'Meets National Curriculum requirements',
-                'Needs Improvement': 'Requires additional support for GCSE/A-Level preparation'
-            }
+    def _generate_contextual_assessment(self):
+        """Generate assessment based on context"""
+        assessment_preference = self.context.get('assessment_preference', 'Mixed')
+        
+        assessments = {
+            'Formative': ['Exit tickets', 'Quick quizzes', 'Think-pair-share', 'One-minute papers'],
+            'Summative': ['Unit tests', 'Final projects', 'Oral presentations', 'Portfolios'],
+            'Mixed': ['Formative checks', 'Summative assessments', 'Peer assessment'],
+            'Continuous evaluation': ['Weekly quizzes', 'Observations', 'Work samples']
         }
         
-        return rubrics.get(self.country, {
-            'Excellent': 'Demonstrates mastery with creativity',
-            'Good': 'Shows strong understanding',
-            'Satisfactory': 'Meets basic requirements',
-            'Needs Improvement': 'Requires additional support'
-        })
+        return assessments.get(assessment_preference, assessments['Mixed'])
+    
+    def _generate_differentiation_strategies(self):
+        """Generate differentiation strategies"""
+        return {
+            'Visual Learners': 'Use diagrams, charts, and visual aids',
+            'Auditory Learners': 'Include discussions and audio explanations',
+            'Kinesthetic Learners': 'Add hands-on activities and movement',
+            'Advanced Learners': 'Provide extension challenges and projects',
+            'Struggling Learners': 'Offer additional support and scaffolding'
+        }
+    
+    def _generate_resource_list(self):
+        """Generate list of needed resources"""
+        resources = self.context.get('resources_available', '')
+        
+        resource_list = [
+            'Whiteboard/Projector',
+            'Textbooks and reference materials',
+            'Worksheets and handouts'
+        ]
+        
+        if 'technology' in resources.lower():
+            resource_list.extend(['Computers/Tablets', 'Educational software'])
+        
+        if 'lab' in resources.lower():
+            resource_list.extend(['Lab equipment', 'Experiment materials'])
+        
+        return resource_list
+    
+    def _generate_time_allocation(self):
+        """Generate time allocation for lesson"""
+        return {
+            'Introduction': '5-10 minutes',
+            'Main Activity': '20-25 minutes',
+            'Group Work': '10-15 minutes',
+            'Assessment': '5-10 minutes',
+            'Closure': '5 minutes'
+        }
 
-class ProfessionalOutcomeEngine:
-    """Professional - Career Acceleration Lab"""
+class EnhancedProfessionalOutcomeEngine(ProfessionalOutcomeEngine):
+    """Enhanced professional engine with context-aware features"""
     
     def __init__(self, domain='business', country_code='kenya'):
-        self.domain = domain
-        self.country = country_code
-        self.overlay = LocalCurriculumOverlay.get_overlay(country_code)
-        self.workflow_templates = self._initialize_workflow_templates()
+        super().__init__(domain, country_code)
+        self.context = st.session_state.get('professional_context', {})
     
-    def _initialize_workflow_templates(self):
-        """Initialize workflow templates for different tasks"""
-        return {
-            'research': {
-                'steps': [
-                    'Define research question and objectives',
-                    'Gather and analyze data from multiple sources',
-                    'Synthesize findings and identify patterns',
-                    'Generate comprehensive report with insights',
-                    'Add citations and references'
-                ],
-                'output': 'Research synthesis with actionable insights',
-                'localization': f'Using {self.overlay.get("system", "global")} standards and {self.overlay.get("currency", "local")} context',
-                'time_estimate': '2-3 hours'
-            },
-            'marketing': {
-                'steps': [
-                    'Define target audience and buyer personas',
-                    'Create content strategy and calendar',
-                    'Generate marketing copy and materials',
-                    'Design visual elements and assets',
-                    'Track and optimize performance metrics'
-                ],
-                'output': 'Multi-channel marketing campaign',
-                'localization': f'Localized for {self.country.upper()} market with {self.overlay.get("language", "English")} support',
-                'time_estimate': '3-4 hours'
-            },
-            'analytics': {
-                'steps': [
-                    'Collect data from all relevant sources',
-                    'Clean and preprocess data for analysis',
-                    'Perform statistical analysis and modeling',
-                    'Create visualizations and dashboards',
-                    'Interpret results and suggest actionable recommendations'
-                ],
-                'output': 'Comprehensive analytics dashboard',
-                'localization': f'Adapted for {self.overlay.get("system", "local")} business environment',
-                'time_estimate': '2-4 hours'
-            },
-            'reporting': {
-                'steps': [
-                    'Define reporting objectives and KPIs',
-                    'Collect and organize data',
-                    'Analyze trends and patterns',
-                    'Create visual reports and presentations',
-                    'Deliver insights and recommendations'
-                ],
-               
+    def generate_contextual_workflow(self, task_type):
+        """Generate workflow based on professional context"""
