@@ -1,2 +1,33 @@
-streamlit>=1.28.0,<2.0.0
+# ============================================================
+# AI Shiksha — Python Dependencies
+# Python 3.10+ required
+# ============================================================
+
+# --- Core Framework ---
+streamlit>=1.32.0,<2.0.0
+
+# --- Data Processing ---
 pandas>=2.0.0,<3.0.0
+numpy>=1.24.0,<3.0.0
+
+# --- Optional: Visual Knowledge Graphs ---
+# Uncomment to enable interactive knowledge graph rendering.
+# If omitted, the app falls back to a text-based mastery tree.
+networkx>=3.1,<4.0
+matplotlib>=3.7.0,<4.0
+
+# --- Optional: Document Processing ---
+# Uncomment to enable PDF and DOCX upload support.
+# If omitted, those file types will return a helpful error in the UI.
+PyPDF2>=3.0.0,<4.0
+python-docx>=1.0.0,<2.0.0
+
+# ============================================================
+# Notes
+# ============================================================
+# - The app runs without networkx/matplotlib — it falls back
+#   to a text-based mastery tree view.
+# - The app runs without PyPDF2/python-docx — those file types
+#   will show a clear install hint in the UI.
+# - Deterministic RNG is provided by the stdlib `random` module.
+# ============================================================
